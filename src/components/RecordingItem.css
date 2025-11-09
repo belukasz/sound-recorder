@@ -1,0 +1,94 @@
+.recording-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background-color: #f7fafc;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.recording-item.selected {
+    background-color: #ebf8ff;
+    border-color: #4299e1;
+}
+
+.recording-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #4299e1;
+}
+
+.recording-info {
+    flex: 1;
+}
+
+.recording-name {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 4px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.recording-name:hover {
+    background-color: #e2e8f0;
+}
+
+.recording-name-input {
+    font-weight: 600;
+    color: #2d3748;
+    padding: 4px 8px;
+    border: 2px solid #4299e1;
+    border-radius: 4px;
+    font-size: 1em;
+    font-family: inherit;
+    width: 100%;
+    max-width: 300px;
+}
+
+.recording-name-input:focus {
+    outline: none;
+    border-color: #3182ce;
+}
+
+.recording-time {
+    font-size: 0.85em;
+    color: #718096;
+}
+
+.recording-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-small {
+    padding: 8px 16px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-play {
+    background-color: #4299e1;
+    color: white;
+}
+
+.btn-play:hover {
+    background-color: #3182ce;
+}
+
+.btn-delete {
+    background-color: #fc8181;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #f56565;
+}

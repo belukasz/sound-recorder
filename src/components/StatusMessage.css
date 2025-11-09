@@ -1,0 +1,23 @@
+.status {
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    font-weight: 500;
+    min-height: 20px;
+}
+
+.status.recording {
+    background-color: #fed7d7;
+    color: #c53030;
+}
+
+.status.success {
+    background-color: #c6f6d5;
+    color: #276749;
+}
+
+.status.error {
+    background-color: #fed7d7;
+    color: #c53030;
+}

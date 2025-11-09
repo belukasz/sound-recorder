@@ -1,0 +1,72 @@
+.recordings-section {
+    margin-top: 30px;
+}
+
+.recordings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+h2 {
+    color: #555;
+    font-size: 1.2em;
+    margin: 0;
+}
+
+.exercise-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.selected-count {
+    font-size: 0.9em;
+    color: #4299e1;
+    font-weight: 600;
+}
+
+.btn-exercise {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: #9f7aea;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.btn-exercise:hover:not(:disabled) {
+    background-color: #805ad5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(159, 122, 234, 0.4);
+}
+
+.btn-exercise:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-stop-exercise {
+    background-color: #f56565;
+}
+
+.btn-stop-exercise:hover {
+    background-color: #e53e3e;
+    box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
+}
+
+.recordings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #a0aec0;
+}
