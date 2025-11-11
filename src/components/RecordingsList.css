@@ -1,13 +1,3 @@
-.recordings-section {
-    margin-top: 30px;
-}
-
-h2 {
-    color: #555;
-    font-size: 1.2em;
-    margin-bottom: 15px;
-}
-
 .recordings-list {
     display: flex;
     flex-direction: column;

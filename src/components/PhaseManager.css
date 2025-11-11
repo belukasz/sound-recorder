@@ -1,22 +1,11 @@
 .phase-manager {
-    margin-top: 30px;
-    padding: 20px;
-    background-color: #f7fafc;
-    border-radius: 12px;
-    border: 2px solid #e2e8f0;
 }
 
 .phase-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     margin-bottom: 20px;
-}
-
-.phase-header h2 {
-    color: #2d3748;
-    font-size: 1.3em;
-    margin: 0;
 }
 
 .btn-create-phase {

@@ -46,7 +46,6 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
   return (
     <div className="phase-manager">
       <div className="phase-header">
-        <h2>Exercise Phases</h2>
         <button
           className="btn-create-phase"
           onClick={() => setIsCreating(!isCreating)}

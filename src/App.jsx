@@ -5,6 +5,7 @@ import StatusMessage from './components/StatusMessage'
 import PhaseManager from './components/PhaseManager'
 import ExerciseManager from './components/ExerciseManager'
 import DataManager from './components/DataManager'
+import CollapsibleSection from './components/CollapsibleSection'
 import * as db from './utils/indexedDB'
 import './App.css'
 
@@ -369,35 +370,43 @@ function App() {
 
       <StatusMessage message={status.message} type={status.type} />
 
-      <RecordingsList
-        recordings={recordings}
-        onPlay={playRecording}
-        onDelete={deleteRecording}
-        onRename={renameRecording}
-      />
+      <CollapsibleSection title="Recordings" defaultExpanded={true}>
+        <RecordingsList
+          recordings={recordings}
+          onPlay={playRecording}
+          onDelete={deleteRecording}
+          onRename={renameRecording}
+        />
+      </CollapsibleSection>
 
-      <PhaseManager
-        recordings={recordings}
-        phases={phases}
-        onCreatePhase={createPhase}
-        onDeletePhase={deletePhase}
-        onUpdatePhase={updatePhase}
-        onStartPhase={startPhase}
-        isPlayingExercise={isPlayingExercise}
-        onStopExercise={stopExercise}
-      />
+      <CollapsibleSection title="Phases" defaultExpanded={false}>
+        <PhaseManager
+          recordings={recordings}
+          phases={phases}
+          onCreatePhase={createPhase}
+          onDeletePhase={deletePhase}
+          onUpdatePhase={updatePhase}
+          onStartPhase={startPhase}
+          isPlayingExercise={isPlayingExercise}
+          onStopExercise={stopExercise}
+        />
+      </CollapsibleSection>
 
-      <ExerciseManager
-        phases={phases}
-        exercises={exercises}
-        onCreateExercise={createExercise}
-        onDeleteExercise={deleteExercise}
-        onStartExercise={startExercise}
-        isPlayingExercise={isPlayingExercise}
-        onStopExercise={stopExercise}
-      />
+      <CollapsibleSection title="Exercises" defaultExpanded={false}>
+        <ExerciseManager
+          phases={phases}
+          exercises={exercises}
+          onCreateExercise={createExercise}
+          onDeleteExercise={deleteExercise}
+          onStartExercise={startExercise}
+          isPlayingExercise={isPlayingExercise}
+          onStopExercise={stopExercise}
+        />
+      </CollapsibleSection>
 
-      <DataManager />
+      <CollapsibleSection title="Data Management" defaultExpanded={false}>
+        <DataManager />
+      </CollapsibleSection>
     </div>
   )
 }

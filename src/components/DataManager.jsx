@@ -70,8 +70,6 @@ function DataManager({ onDataImported }) {
 
   return (
     <div className="data-manager">
-      <h2>Data Management</h2>
-
       <div className="data-actions">
         <button
           className="btn-data btn-export"

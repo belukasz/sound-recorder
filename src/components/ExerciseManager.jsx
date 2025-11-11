@@ -73,7 +73,6 @@ function ExerciseManager({ phases, exercises, onCreateExercise, onDeleteExercise
   return (
     <div className="exercise-manager">
       <div className="exercise-header">
-        <h2>Exercises</h2>
         <button
           className="btn-create-exercise"
           onClick={() => setIsCreating(!isCreating)}
