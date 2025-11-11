@@ -1,0 +1,51 @@
+.delay-settings {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+    padding: 20px;
+    background-color: #f7fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.delay-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.delay-input-group label {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+.delay-input-group input {
+    padding: 8px 12px;
+    border: 2px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 1em;
+    width: 180px;
+    transition: border-color 0.2s ease;
+}
+
+.delay-input-group input:focus {
+    outline: none;
+    border-color: #4299e1;
+}
+
+.delay-input-group input:hover {
+    border-color: #a0aec0;
+}
+
+@media (max-width: 600px) {
+    .delay-settings {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .delay-input-group input {
+        width: 100%;
+    }
+}

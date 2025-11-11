@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './RecordingItem.css'
 
-function RecordingItem({ recording, isSelected, onPlay, onDelete, onRename, onToggleSelection }) {
+function RecordingItem({ recording, onPlay, onDelete, onRename }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(recording.name)
 
@@ -26,13 +26,7 @@ function RecordingItem({ recording, isSelected, onPlay, onDelete, onRename, onTo
   }
 
   return (
-    <div className={`recording-item ${isSelected ? 'selected' : ''}`}>
-      <input
-        type="checkbox"
-        className="recording-checkbox"
-        checked={isSelected}
-        onChange={() => onToggleSelection(recording.id)}
-      />
+    <div className="recording-item">
       <div className="recording-info">
         {isEditing ? (
           <input

@@ -1,0 +1,266 @@
+.phase-manager {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f7fafc;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+}
+
+.phase-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.phase-header h2 {
+    color: #2d3748;
+    font-size: 1.3em;
+    margin: 0;
+}
+
+.btn-create-phase {
+    padding: 10px 20px;
+    background-color: #48bb78;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-create-phase:hover {
+    background-color: #38a169;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+}
+
+.phase-creator {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 2px solid #4299e1;
+}
+
+.phase-creator h3 {
+    color: #2d3748;
+    margin-bottom: 15px;
+}
+
+.phase-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 0.9em;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"] {
+    padding: 10px 12px;
+    border: 2px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 1em;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #4299e1;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.recordings-selector {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: #f7fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.recording-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.recording-checkbox-label:hover {
+    background-color: #edf2f7;
+}
+
+.recording-checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #4299e1;
+}
+
+.recording-checkbox-label span {
+    color: #2d3748;
+    font-weight: 500;
+}
+
+.no-recordings {
+    color: #a0aec0;
+    font-style: italic;
+    padding: 10px;
+}
+
+.btn-save-phase {
+    padding: 12px 24px;
+    background-color: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.btn-save-phase:hover {
+    background-color: #3182ce;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+}
+
+.phases-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.no-phases {
+    text-align: center;
+    color: #a0aec0;
+    padding: 30px;
+    font-style: italic;
+}
+
+.phase-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background-color: white;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.phase-item:hover {
+    border-color: #cbd5e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.phase-info h4 {
+    color: #2d3748;
+    margin: 0 0 8px 0;
+    font-size: 1.1em;
+}
+
+.phase-details {
+    display: flex;
+    gap: 15px;
+}
+
+.phase-stat {
+    font-size: 0.9em;
+    color: #718096;
+}
+
+.phase-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-phase-action {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-start {
+    background-color: #9f7aea;
+    color: white;
+}
+
+.btn-start:hover {
+    background-color: #805ad5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(159, 122, 234, 0.4);
+}
+
+.btn-delete-phase {
+    background-color: #fc8181;
+    color: white;
+}
+
+.btn-delete-phase:hover:not(:disabled) {
+    background-color: #f56565;
+    transform: translateY(-2px);
+}
+
+.btn-delete-phase:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-stop-phase {
+    background-color: #f56565;
+    color: white;
+}
+
+.btn-stop-phase:hover {
+    background-color: #e53e3e;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .phase-item {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .phase-actions {
+        width: 100%;
+    }
+
+    .btn-phase-action {
+        flex: 1;
+    }
+}

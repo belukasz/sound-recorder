@@ -5,20 +5,7 @@
     padding: 15px;
     background-color: #f7fafc;
     border-radius: 8px;
-    border: 2px solid #e2e8f0;
-    transition: all 0.2s ease;
-}
-
-.recording-item.selected {
-    background-color: #ebf8ff;
-    border-color: #4299e1;
-}
-
-.recording-checkbox {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    accent-color: #4299e1;
+    border: 1px solid #e2e8f0;
 }
 
 .recording-info {
