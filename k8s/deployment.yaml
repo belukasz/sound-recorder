@@ -5,7 +5,7 @@ metadata:
   labels:
     app: sound-recorder
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: sound-recorder
@@ -17,10 +17,14 @@ spec:
       containers:
       - name: sound-recorder
         image: sound-recorder:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never
         ports:
-        - containerPort: 80
-          name: http
+        - containerPort: 443
+          name: https
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/nginx/ssl
+          readOnly: true
         resources:
           requests:
             memory: "64Mi"
@@ -31,7 +35,8 @@ spec:
         livenessProbe:
           httpGet:
             path: /
-            port: 80
+            port: 443
+            scheme: HTTPS
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -39,8 +44,13 @@ spec:
         readinessProbe:
           httpGet:
             path: /
-            port: 80
+            port: 443
+            scheme: HTTPS
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
+      volumes:
+      - name: tls-certs
+        secret:
+          secretName: sound-recorder-tls
