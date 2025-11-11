@@ -1,0 +1,94 @@
+.data-manager {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f0f9ff;
+    border-radius: 12px;
+    border: 2px solid #bfdbfe;
+}
+
+.data-manager h2 {
+    color: #1e40af;
+    font-size: 1.3em;
+    margin: 0 0 20px 0;
+}
+
+.data-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.btn-data {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-export {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.btn-export:hover:not(:disabled) {
+    background-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-import {
+    background-color: #10b981;
+    color: white;
+    display: inline-block;
+}
+
+.btn-import:hover {
+    background-color: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-clear {
+    background-color: #ef4444;
+    color: white;
+}
+
+.btn-clear:hover {
+    background-color: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.btn-data:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.data-info {
+    margin-top: 15px;
+    padding: 12px;
+    background-color: white;
+    border-radius: 6px;
+    border: 1px solid #dbeafe;
+}
+
+.data-info p {
+    margin: 6px 0;
+    font-size: 0.9em;
+    color: #1e40af;
+}
+
+@media (max-width: 600px) {
+    .data-actions {
+        flex-direction: column;
+    }
+
+    .btn-data {
+        width: 100%;
+    }
+}

@@ -1,9 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import RecordingControls from './components/RecordingControls'
 import RecordingsList from './components/RecordingsList'
 import StatusMessage from './components/StatusMessage'
 import PhaseManager from './components/PhaseManager'
 import ExerciseManager from './components/ExerciseManager'
+import DataManager from './components/DataManager'
+import * as db from './utils/indexedDB'
 import './App.css'
 
 function App() {
@@ -13,12 +15,65 @@ function App() {
   const [isPlayingExercise, setIsPlayingExercise] = useState(false)
   const [phases, setPhases] = useState([])
   const [exercises, setExercises] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
 
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const streamRef = useRef(null)
   const currentAudioRef = useRef(null)
   const exerciseStoppedRef = useRef(false)
+
+  // Load data from IndexedDB on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [loadedRecordings, loadedPhases, loadedExercises] = await Promise.all([
+          db.getAllRecordings(),
+          db.getAllPhases(),
+          db.getAllExercises()
+        ])
+
+        setRecordings(loadedRecordings)
+        setPhases(loadedPhases)
+        setExercises(loadedExercises)
+      } catch (error) {
+        console.error('Error loading data:', error)
+        setStatus({ message: 'Error loading saved data', type: 'error' })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
+
+  // Auto-save whenever data changes
+  useEffect(() => {
+    if (isLoading) return // Don't save during initial load
+
+    const saveData = async () => {
+      try {
+        // Save all recordings
+        for (const recording of recordings) {
+          await db.saveRecording(recording)
+        }
+
+        // Save all phases
+        for (const phase of phases) {
+          await db.savePhase(phase)
+        }
+
+        // Save all exercises
+        for (const exercise of exercises) {
+          await db.saveExercise(exercise)
+        }
+      } catch (error) {
+        console.error('Error auto-saving data:', error)
+      }
+    }
+
+    saveData()
+  }, [recordings, phases, exercises, isLoading])
 
   const getSupportedMimeType = () => {
     if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
@@ -96,11 +151,12 @@ function App() {
     }
   }
 
-  const deleteRecording = (id) => {
+  const deleteRecording = async (id) => {
     const recording = recordings.find(r => r.id === id)
     if (recording) {
       URL.revokeObjectURL(recording.url)
     }
+    await db.deleteRecording(id)
     setRecordings(prev => prev.filter(r => r.id !== id))
   }
 
@@ -125,7 +181,8 @@ function App() {
     setPhases(prev => [...prev, phase])
   }
 
-  const deletePhase = (phaseId) => {
+  const deletePhase = async (phaseId) => {
+    await db.deletePhase(phaseId)
     setPhases(prev => prev.filter(p => p.id !== phaseId))
   }
 
@@ -137,7 +194,8 @@ function App() {
     setExercises(prev => [...prev, exercise])
   }
 
-  const deleteExercise = (exerciseId) => {
+  const deleteExercise = async (exerciseId) => {
+    await db.deleteExercise(exerciseId)
     setExercises(prev => prev.filter(e => e.id !== exerciseId))
   }
 
@@ -338,6 +396,8 @@ function App() {
         isPlayingExercise={isPlayingExercise}
         onStopExercise={stopExercise}
       />
+
+      <DataManager />
     </div>
   )
 }
