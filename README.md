@@ -68,57 +68,51 @@ npm run preview
 # Build the Docker image
 docker build -t sound-recorder:latest .
 
-# Run the container
+# Run with HTTP
 docker run -p 8080:80 sound-recorder:latest
+
+# Or run with HTTPS (requires SSL certificates)
+docker run -p 8080:80 -p 8443:443 \
+  -v /path/to/certs:/etc/caddy/ssl:ro \
+  sound-recorder:latest
 ```
 
-Access at: http://localhost:8080
+Access at:
+- HTTP: http://localhost:8080
+- HTTPS: https://localhost:8443
 
-### With HTTPS (for microphone access)
-
-```bash
-# Build with HTTPS support
-docker build -f Dockerfile.https -t sound-recorder:latest .
-
-# Run with port mapping
-docker run -p 8443:443 sound-recorder:latest
-```
-
-Access at: https://localhost:8443
-
-> **Note**: Browsers require HTTPS for microphone access (except on localhost)
+> **Note**: Browsers require HTTPS for microphone access when not on localhost
 
 ## Kubernetes Deployment
 
-### Local Kubernetes (Minikube, Kind, etc.)
+### Deploy to Kubernetes
 
 ```bash
-./deploy-local.sh
-```
-
-### Remote Bare Metal Kubernetes
-
-```bash
-# Set your Kubernetes node address
+# Set your Kubernetes node address (if deploying remotely)
 export K8S_HOST="ubuntu@192.168.1.100"
 
 # Deploy
-./deploy-remote.sh
+./deploy.sh
 ```
 
-### With HTTPS Support
+The deployment script will:
+1. Build the Docker image for linux/amd64
+2. Transfer the image to your Kubernetes server
+3. Generate self-signed SSL certificates
+4. Deploy to Kubernetes with HTTPS support
 
-```bash
-./deploy-https.sh
-```
+### Access Your Application
 
-Access at: https://your-node-ip:30443
+After deployment:
+- **HTTP**: http://your-node-ip:30080
+- **HTTPS**: https://your-node-ip:30443
 
-### Detailed Deployment Guides
+> **Note**: Self-signed certificates will show a browser warning. For production, see [LETS-ENCRYPT-SETUP.md](LETS-ENCRYPT-SETUP.md)
 
-- [General Kubernetes Deployment](DEPLOYMENT.md)
-- [Bare Metal Deployment](BARE-METAL-DEPLOYMENT.md)
-- [Remote Deployment](REMOTE-DEPLOYMENT.md)
+### Additional Guides
+
+- [Caddy Migration Details](CADDY-MIGRATION.md)
+- [Let's Encrypt Setup](LETS-ENCRYPT-SETUP.md)
 
 ## Architecture
 
@@ -145,9 +139,14 @@ sound-recorder/
 │   ├── App.jsx                      # Main application
 │   └── main.jsx                     # Entry point
 ├── k8s/                             # Kubernetes manifests
-├── Dockerfile                       # Docker build (HTTP)
-├── Dockerfile.https                 # Docker build (HTTPS)
-└── deploy-*.sh                      # Deployment scripts
+│   ├── deployment.yaml              # App deployment
+│   ├── service.yaml                 # NodePort service
+│   └── namespace.yaml               # Namespace definition
+├── Dockerfile                       # Multi-stage build with Caddy
+├── Caddyfile                        # Caddy web server configuration
+├── deploy.sh                        # Kubernetes deployment script
+├── CADDY-MIGRATION.md               # Caddy migration details
+└── LETS-ENCRYPT-SETUP.md            # Let's Encrypt setup guide
 ```
 
 ## How It Works
@@ -218,13 +217,13 @@ Output in `dist/` directory.
 
 ## Kubernetes Features
 
-- **Multi-platform builds**: Supports ARM64 and AMD64
-- **Resource limits**: Configurable CPU and memory
-- **Health checks**: Liveness and readiness probes
-- **Scaling**: Horizontal pod autoscaling ready
-- **Service types**: LoadBalancer, NodePort, ClusterIP
-- **Ingress support**: With TLS/SSL configuration
-- **HTTPS**: Self-signed certificate generation
+- **Multi-platform builds**: linux/amd64 support
+- **Resource limits**: Configurable CPU and memory (64Mi/128Mi, 100m/200m)
+- **Health checks**: HTTP-based liveness and readiness probes
+- **Automatic HTTPS**: Self-signed certificates (upgradeable to Let's Encrypt)
+- **Dual port support**: HTTP (30080) and HTTPS (30443) via NodePort
+- **Caddy web server**: Automatic HTTPS with minimal configuration
+- **Persistent storage ready**: Can mount volumes for certificate persistence
 
 ## Configuration
 
@@ -268,22 +267,33 @@ resources:
 
 ### ImagePullBackOff (Kubernetes)
 
-**Problem**: Pods fail to start
+**Problem**: Pods fail to start with ImagePullBackOff
 
-**Solution**: Use local image deployment:
+**Solution**: The deployment uses local images (imagePullPolicy: Never)
 ```bash
-./deploy-remote.sh  # For remote k8s
-./deploy-local.sh   # For local k8s
+# Ensure image is loaded on the Kubernetes node
+./deploy.sh
 ```
 
 ### Platform Mismatch
 
 **Problem**: Image won't load on different architecture
 
-**Solution**: Build for correct platform:
+**Solution**: The deploy.sh script automatically builds for linux/amd64. If building manually:
 ```bash
 docker build --platform linux/amd64 -t sound-recorder:latest .
 ```
+
+### Pod Not Ready / Health Probe Failures
+
+**Problem**: Pod shows as not ready or restarts frequently
+
+**Cause**: Health probes failing (common with TLS/certificate issues)
+
+**Solution**:
+- Check pod logs: `kubectl logs -n sound-recorder -l app=sound-recorder`
+- Verify ports 80 and 443 are exposed in deployment
+- Ensure health probes use HTTP on port 80 (not HTTPS)
 
 ## Contributing
 
