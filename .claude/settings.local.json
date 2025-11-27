@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl run:*)",
+      "Bash(./deploy.sh:*)",
+      "Bash(kubectl rollout:*)"
     ],
     "deny": [],
     "ask": []

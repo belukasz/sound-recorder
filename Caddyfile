@@ -1,0 +1,60 @@
+{
+	auto_https disable_redirects
+}
+
+:80 {
+	root * /usr/share/caddy
+	encode gzip
+
+	@static {
+		path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+	}
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	header {
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		X-XSS-Protection "1; mode=block"
+	}
+
+	try_files {path} {path}/ /index.html
+	file_server
+}
+
+:443 {
+	tls /etc/caddy/ssl/tls.crt /etc/caddy/ssl/tls.key
+
+	root * /usr/share/caddy
+	encode gzip
+
+	@static {
+		path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+	}
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	header {
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		X-XSS-Protection "1; mode=block"
+	}
+
+	try_files {path} {path}/ /index.html
+	file_server
+}
+
+# When ready to use Let's Encrypt with a real domain, replace above with:
+# yourdomain.com {
+#     root * /usr/share/caddy
+#     encode gzip
+#     @static {
+#         path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+#     }
+#     header @static Cache-Control "public, max-age=31536000, immutable"
+#     header {
+#         X-Frame-Options "SAMEORIGIN"
+#         X-Content-Type-Options "nosniff"
+#         X-XSS-Protection "1; mode=block"
+#     }
+#     try_files {path} {path}/ /index.html
+#     file_server
+# }

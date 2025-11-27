@@ -15,20 +15,20 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production stage with HTTPS support
-FROM nginx:alpine
+# Production stage with Caddy for automatic HTTPS
+FROM caddy:2-alpine
 
 # Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/caddy
 
-# Copy HTTPS nginx configuration
-COPY nginx-https.conf /etc/nginx/conf.d/default.conf
+# Copy Caddyfile configuration
+COPY Caddyfile /etc/caddy/Caddyfile
 
-# Create directory for SSL certificates (will be mounted from k8s secret)
-RUN mkdir -p /etc/nginx/ssl
+# Create directory for SSL certificates (will be mounted from k8s secret for now)
+RUN mkdir -p /etc/caddy/ssl
 
 # Expose ports 80 and 443
 EXPOSE 80 443
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Caddy will start automatically with the default entrypoint
+# Using Caddyfile at /etc/caddy/Caddyfile

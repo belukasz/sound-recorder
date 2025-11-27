@@ -19,11 +19,13 @@ spec:
         image: sound-recorder:latest
         imagePullPolicy: Never
         ports:
+        - containerPort: 80
+          name: http
         - containerPort: 443
           name: https
         volumeMounts:
         - name: tls-certs
-          mountPath: /etc/nginx/ssl
+          mountPath: /etc/caddy/ssl
           readOnly: true
         resources:
           requests:
@@ -35,8 +37,8 @@ spec:
         livenessProbe:
           httpGet:
             path: /
-            port: 443
-            scheme: HTTPS
+            port: 80
+            scheme: HTTP
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -44,8 +46,8 @@ spec:
         readinessProbe:
           httpGet:
             path: /
-            port: 443
-            scheme: HTTPS
+            port: 80
+            scheme: HTTP
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 3

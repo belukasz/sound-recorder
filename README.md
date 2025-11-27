@@ -128,7 +128,7 @@ Access at: https://your-node-ip:30443
 - **Audio API**: MediaRecorder API (browser native)
 - **Styling**: Pure CSS with component-scoped styles
 - **Storage**: Browser memory (session-based)
-- **Deployment**: Docker + Kubernetes + Nginx
+- **Deployment**: Docker + Kubernetes + Caddy
 
 ### Project Structure
 
@@ -301,7 +301,7 @@ Built with:
 - [MediaRecorder API](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) - Audio recording
 - [Kubernetes](https://kubernetes.io/) - Container orchestration
 - [Docker](https://www.docker.com/) - Containerization
-- [Nginx](https://nginx.org/) - Web server
+- [Caddy](https://caddyserver.com/) - Web server with automatic HTTPS
 
 ---
 
