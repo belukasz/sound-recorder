@@ -551,7 +551,7 @@ function App() {
 
   return (
     <div className="container">
-      <h1>Sound Recorder</h1>
+      <h1>⚡ Timing Trainer</h1>
 
       <RecordingControls
         isRecording={isRecording}
