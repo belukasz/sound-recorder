@@ -1,0 +1,156 @@
+.exercise-player {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.exercise-player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.exercise-player-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.btn-stop-player {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  padding: 16px 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  font-size: 1.1rem;
+  min-height: 56px;
+  min-width: 140px;
+}
+
+.btn-stop-player:hover {
+  background: white;
+  color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-stop-player:active {
+  transform: translateY(0);
+}
+
+.exercise-player-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.exercise-player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.player-field {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.player-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  min-width: 120px;
+}
+
+.player-value {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.player-status {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-indicator {
+  font-size: 1.5rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.status-text {
+  font-size: 1rem;
+  font-weight: 500;
+  flex: 1;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+  .exercise-player {
+    padding: 16px;
+  }
+
+  .exercise-player-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .exercise-player-header h3 {
+    font-size: 1.2rem;
+    text-align: center;
+  }
+
+  .btn-stop-player {
+    padding: 18px 24px;
+    font-size: 1.2rem;
+    min-height: 60px;
+    width: 100%;
+  }
+
+  .player-label {
+    min-width: 100px;
+    font-size: 0.85rem;
+  }
+
+  .player-value {
+    font-size: 1rem;
+  }
+}

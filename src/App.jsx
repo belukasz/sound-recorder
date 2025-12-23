@@ -4,6 +4,7 @@ import RecordingsList from './components/RecordingsList'
 import StatusMessage from './components/StatusMessage'
 import PhaseManager from './components/PhaseManager'
 import ExerciseManager from './components/ExerciseManager'
+import ExercisePlayer from './components/ExercisePlayer'
 import DataManager from './components/DataManager'
 import CollapsibleSection from './components/CollapsibleSection'
 import * as db from './utils/indexedDB'
@@ -17,6 +18,15 @@ function App() {
   const [phases, setPhases] = useState([])
   const [exercises, setExercises] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+
+  // Exercise player state
+  const [currentExerciseName, setCurrentExerciseName] = useState('')
+  const [currentPhaseName, setCurrentPhaseName] = useState('')
+  const [currentRep, setCurrentRep] = useState(0)
+  const [totalReps, setTotalReps] = useState(0)
+  const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0)
+  const [totalPhases, setTotalPhases] = useState(0)
+  const [playerStatus, setPlayerStatus] = useState('')
 
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
@@ -173,9 +183,18 @@ function App() {
     exerciseStoppedRef.current = true
     if (currentAudioRef.current) {
       currentAudioRef.current.pause()
+      currentAudioRef.current.currentTime = 0
       currentAudioRef.current = null
     }
     setIsPlayingExercise(false)
+    // Reset player state
+    setCurrentExerciseName('')
+    setCurrentPhaseName('')
+    setCurrentRep(0)
+    setTotalReps(0)
+    setCurrentPhaseIndex(0)
+    setTotalPhases(0)
+    setPlayerStatus('')
   }
 
   const createPhase = (phase) => {
@@ -201,12 +220,23 @@ function App() {
   }
 
   const startExercise = async (exerciseId) => {
+    // Prevent starting multiple exercises
+    if (isPlayingExercise) {
+      setStatus({ message: 'An exercise is already playing. Stop it first.', type: 'error' })
+      setTimeout(() => setStatus({ message: '', type: '' }), 3000)
+      return
+    }
+
     const exercise = exercises.find(e => e.id === exerciseId)
     if (!exercise) return
 
     setIsPlayingExercise(true)
     exerciseStoppedRef.current = false
     setStatus({ message: `Starting exercise: ${exercise.name}`, type: 'recording' })
+
+    // Initialize player state
+    setCurrentExerciseName(exercise.name)
+    setTotalReps(exercise.repetitions || 1)
 
     // Get all phases for this exercise in order
     const exercisePhases = exercise.phaseIds
@@ -216,21 +246,28 @@ function App() {
     if (exercisePhases.length === 0) {
       setStatus({ message: 'No valid phases in this exercise', type: 'error' })
       setIsPlayingExercise(false)
+      setCurrentExerciseName('')
+      setTotalReps(0)
       setTimeout(() => setStatus({ message: '', type: '' }), 3000)
       return
     }
 
     const totalRepetitions = exercise.repetitions || 1
+    setTotalPhases(exercisePhases.length)
 
     // Repeat the entire exercise
     for (let rep = 0; rep < totalRepetitions; rep++) {
       if (exerciseStoppedRef.current) break
+
+      setCurrentRep(rep + 1)
 
       // Run through each phase sequentially
       for (let phaseIndex = 0; phaseIndex < exercisePhases.length; phaseIndex++) {
         if (exerciseStoppedRef.current) break
 
         const phase = exercisePhases[phaseIndex]
+        setCurrentPhaseName(phase.name)
+        setCurrentPhaseIndex(phaseIndex + 1)
 
         // Get recordings for this phase
         const phaseRecordings = phase.recordingIds
@@ -241,50 +278,122 @@ function App() {
           continue // Skip this phase if no recordings
         }
 
-        // Random delay before phase starts
-        const min = Math.min(phase.minDelay, phase.maxDelay)
-        const max = Math.max(phase.minDelay, phase.maxDelay)
-        const delay = (Math.random() * (max - min) + min) * 1000
+        if (phase.type === 'roundRobin') {
+          // Round Robin: Play ALL recordings in sequence with repetitions for this phase
+          const repsPerSound = phase.soundRepetitions || 1
 
-        setStatus({
-          message: `Rep ${rep + 1}/${totalRepetitions} - Phase ${phaseIndex + 1}/${exercisePhases.length} (${phase.name}): Waiting ${(delay / 1000).toFixed(1)}s...`,
-          type: 'recording'
-        })
+          for (let i = 0; i < phaseRecordings.length; i++) {
+            if (exerciseStoppedRef.current) break
 
-        await new Promise(resolve => setTimeout(resolve, delay))
+            const selectedRecording = phaseRecordings[i]
 
-        if (exerciseStoppedRef.current) break
+            // Repeat each sound the specified number of times
+            for (let soundRep = 0; soundRep < repsPerSound; soundRep++) {
+              if (exerciseStoppedRef.current) break
 
-        // Pick ONE random recording from this phase
-        const randomRecording = phaseRecordings[
-          Math.floor(Math.random() * phaseRecordings.length)
-        ]
+              // Random delay before each recording
+              const min = Math.min(phase.minDelay, phase.maxDelay)
+              const max = Math.max(phase.minDelay, phase.maxDelay)
+              const delay = (Math.random() * (max - min) + min) * 1000
 
-        setStatus({
-          message: `Rep ${rep + 1}/${totalRepetitions} - Phase ${phaseIndex + 1}/${exercisePhases.length} (${phase.name}): Playing ${randomRecording.name}`,
-          type: 'recording'
-        })
+              const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
+              setStatus({
+                message: `Rep ${rep + 1}/${totalRepetitions} - Phase ${phaseIndex + 1}/${exercisePhases.length} (${phase.name}): ${waitMessage}`,
+                type: 'recording'
+              })
+              setPlayerStatus(waitMessage)
 
-        // Play the recording
-        await new Promise((resolve) => {
-          const audio = new Audio(randomRecording.url)
-          currentAudioRef.current = audio
+              await new Promise(resolve => setTimeout(resolve, delay))
 
-          audio.onended = () => {
-            resolve()
+              if (exerciseStoppedRef.current) break
+
+              const playMessage = repsPerSound > 1
+                ? `Playing ${selectedRecording.name} (${i + 1}/${phaseRecordings.length}, rep ${soundRep + 1}/${repsPerSound})`
+                : `Playing ${selectedRecording.name} (${i + 1}/${phaseRecordings.length})`
+              setStatus({
+                message: `Rep ${rep + 1}/${totalRepetitions} - Phase ${phaseIndex + 1}/${exercisePhases.length} (${phase.name}): ${playMessage}`,
+                type: 'recording'
+              })
+              setPlayerStatus(playMessage)
+
+              // Play the recording
+              await new Promise((resolve) => {
+                const audio = new Audio(selectedRecording.url)
+                currentAudioRef.current = audio
+
+                audio.onended = () => {
+                  resolve()
+                }
+
+                audio.onerror = () => {
+                  console.error('Error playing recording:', selectedRecording.name)
+                  resolve()
+                }
+
+                audio.play()
+              })
+            }
           }
+        } else {
+          // Random Timing: Pick ONE random recording for this phase
+          // Random delay before phase starts
+          const min = Math.min(phase.minDelay, phase.maxDelay)
+          const max = Math.max(phase.minDelay, phase.maxDelay)
+          const delay = (Math.random() * (max - min) + min) * 1000
 
-          audio.onerror = () => {
-            console.error('Error playing recording:', randomRecording.name)
-            resolve()
-          }
+          const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
+          setStatus({
+            message: `Rep ${rep + 1}/${totalRepetitions} - Phase ${phaseIndex + 1}/${exercisePhases.length} (${phase.name}): ${waitMessage}`,
+            type: 'recording'
+          })
+          setPlayerStatus(waitMessage)
 
-          audio.play()
-        })
+          await new Promise(resolve => setTimeout(resolve, delay))
+
+          if (exerciseStoppedRef.current) break
+
+          // Random: pick random recording
+          const selectedRecording = phaseRecordings[
+            Math.floor(Math.random() * phaseRecordings.length)
+          ]
+
+          const playMessage = `Playing ${selectedRecording.name}`
+          setStatus({
+            message: `Rep ${rep + 1}/${totalRepetitions} - Phase ${phaseIndex + 1}/${exercisePhases.length} (${phase.name}): ${playMessage}`,
+            type: 'recording'
+          })
+          setPlayerStatus(playMessage)
+
+          // Play the recording
+          await new Promise((resolve) => {
+            const audio = new Audio(selectedRecording.url)
+            currentAudioRef.current = audio
+
+            audio.onended = () => {
+              resolve()
+            }
+
+            audio.onerror = () => {
+              console.error('Error playing recording:', selectedRecording.name)
+              resolve()
+            }
+
+            audio.play()
+          })
+        }
       }
     }
 
     setIsPlayingExercise(false)
+    // Reset player state
+    setCurrentExerciseName('')
+    setCurrentPhaseName('')
+    setCurrentRep(0)
+    setTotalReps(0)
+    setCurrentPhaseIndex(0)
+    setTotalPhases(0)
+    setPlayerStatus('')
+
     if (exerciseStoppedRef.current) {
       setStatus({ message: 'Exercise stopped', type: '' })
     } else {
@@ -294,12 +403,27 @@ function App() {
   }
 
   const startPhase = async (phaseId) => {
+    // Prevent starting multiple exercises/phases
+    if (isPlayingExercise) {
+      setStatus({ message: 'An exercise or phase is already playing. Stop it first.', type: 'error' })
+      setTimeout(() => setStatus({ message: '', type: '' }), 3000)
+      return
+    }
+
     const phase = phases.find(p => p.id === phaseId)
     if (!phase) return
 
     setIsPlayingExercise(true)
     exerciseStoppedRef.current = false
     setStatus({ message: `Starting phase: ${phase.name}`, type: 'recording' })
+
+    // Set player state for standalone phase
+    setCurrentExerciseName(`Phase: ${phase.name}`)
+    setCurrentPhaseName(phase.name)
+    setTotalReps(1)
+    setCurrentRep(1)
+    setTotalPhases(1)
+    setCurrentPhaseIndex(1)
 
     // Get recordings for this phase
     const phaseRecordings = phase.recordingIds
@@ -313,47 +437,114 @@ function App() {
       return
     }
 
-    // Play recordings with phase-specific delays
-    while (!exerciseStoppedRef.current) {
-      // Random delay using phase's min/max
-      const min = Math.min(phase.minDelay, phase.maxDelay)
-      const max = Math.max(phase.minDelay, phase.maxDelay)
-      const delay = (Math.random() * (max - min) + min) * 1000
+    if (phase.type === 'roundRobin') {
+      // Round Robin: Play all recordings in sequence with repetitions, continuously
+      const repsPerSound = phase.soundRepetitions || 1
 
-      setStatus({ message: `${phase.name}: Waiting ${(delay / 1000).toFixed(1)}s...`, type: 'recording' })
+      while (!exerciseStoppedRef.current) {
+        // Play through all recordings in order
+        for (let i = 0; i < phaseRecordings.length; i++) {
+          if (exerciseStoppedRef.current) break
 
-      await new Promise(resolve => setTimeout(resolve, delay))
+          const selectedRecording = phaseRecordings[i]
 
-      if (exerciseStoppedRef.current) break
+          // Repeat each sound the specified number of times
+          for (let rep = 0; rep < repsPerSound; rep++) {
+            if (exerciseStoppedRef.current) break
 
-      // Pick random recording from phase
-      const randomRecording = phaseRecordings[
-        Math.floor(Math.random() * phaseRecordings.length)
-      ]
+            // Random delay using phase's min/max
+            const min = Math.min(phase.minDelay, phase.maxDelay)
+            const max = Math.max(phase.minDelay, phase.maxDelay)
+            const delay = (Math.random() * (max - min) + min) * 1000
 
-      setStatus({ message: `${phase.name}: Playing ${randomRecording.name}`, type: 'recording' })
+            const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
+            setStatus({ message: `${phase.name}: ${waitMessage}`, type: 'recording' })
+            setPlayerStatus(waitMessage)
 
-      // Play the recording
-      await new Promise((resolve) => {
-        const audio = new Audio(randomRecording.url)
-        currentAudioRef.current = audio
+            await new Promise(resolve => setTimeout(resolve, delay))
 
-        audio.onended = () => {
-          resolve()
+            if (exerciseStoppedRef.current) break
+
+            const playMessage = repsPerSound > 1
+              ? `Playing ${selectedRecording.name} (${i + 1}/${phaseRecordings.length}, rep ${rep + 1}/${repsPerSound})`
+              : `Playing ${selectedRecording.name} (${i + 1}/${phaseRecordings.length})`
+            setStatus({ message: `${phase.name}: ${playMessage}`, type: 'recording' })
+            setPlayerStatus(playMessage)
+
+            // Play the recording
+            await new Promise((resolve) => {
+              const audio = new Audio(selectedRecording.url)
+              currentAudioRef.current = audio
+
+              audio.onended = () => {
+                resolve()
+              }
+
+              audio.onerror = () => {
+                console.error('Error playing recording:', selectedRecording.name)
+                resolve()
+              }
+
+              audio.play()
+            })
+          }
         }
+      }
+    } else {
+      // Random Timing: Play random recordings continuously
+      while (!exerciseStoppedRef.current) {
+        // Random delay using phase's min/max
+        const min = Math.min(phase.minDelay, phase.maxDelay)
+        const max = Math.max(phase.minDelay, phase.maxDelay)
+        const delay = (Math.random() * (max - min) + min) * 1000
 
-        audio.onerror = () => {
-          console.error('Error playing recording:', randomRecording.name)
-          resolve()
-        }
+        const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
+        setStatus({ message: `${phase.name}: ${waitMessage}`, type: 'recording' })
+        setPlayerStatus(waitMessage)
 
-        audio.play()
-      })
+        await new Promise(resolve => setTimeout(resolve, delay))
 
-      if (exerciseStoppedRef.current) break
+        if (exerciseStoppedRef.current) break
+
+        // Random: pick random recording
+        const selectedRecording = phaseRecordings[
+          Math.floor(Math.random() * phaseRecordings.length)
+        ]
+
+        const playMessage = `Playing ${selectedRecording.name}`
+        setStatus({ message: `${phase.name}: ${playMessage}`, type: 'recording' })
+        setPlayerStatus(playMessage)
+
+        // Play the recording
+        await new Promise((resolve) => {
+          const audio = new Audio(selectedRecording.url)
+          currentAudioRef.current = audio
+
+          audio.onended = () => {
+            resolve()
+          }
+
+          audio.onerror = () => {
+            console.error('Error playing recording:', selectedRecording.name)
+            resolve()
+          }
+
+          audio.play()
+        })
+
+        if (exerciseStoppedRef.current) break
+      }
     }
 
     setIsPlayingExercise(false)
+    // Reset player state
+    setCurrentExerciseName('')
+    setCurrentPhaseName('')
+    setCurrentRep(0)
+    setTotalReps(0)
+    setCurrentPhaseIndex(0)
+    setTotalPhases(0)
+    setPlayerStatus('')
     setStatus({ message: 'Phase stopped', type: '' })
     setTimeout(() => setStatus({ message: '', type: '' }), 2000)
   }
@@ -369,6 +560,19 @@ function App() {
       />
 
       <StatusMessage message={status.message} type={status.type} />
+
+      {isPlayingExercise && (
+        <ExercisePlayer
+          currentExercise={currentExerciseName}
+          currentPhase={currentPhaseName}
+          currentRep={currentRep}
+          totalReps={totalReps}
+          currentPhaseIndex={currentPhaseIndex}
+          totalPhases={totalPhases}
+          status={playerStatus}
+          onStop={stopExercise}
+        />
+      )}
 
       <CollapsibleSection title="Recordings" defaultExpanded={true}>
         <RecordingsList

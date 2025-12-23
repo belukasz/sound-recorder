@@ -6,7 +6,8 @@
       "Bash(kubectl apply:*)",
       "Bash(kubectl run:*)",
       "Bash(./deploy.sh:*)",
-      "Bash(kubectl rollout:*)"
+      "Bash(kubectl rollout:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

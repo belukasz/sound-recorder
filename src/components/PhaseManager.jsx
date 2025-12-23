@@ -4,8 +4,10 @@ import './PhaseManager.css'
 function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpdatePhase, onStartPhase, isPlayingExercise, onStopExercise }) {
   const [isCreating, setIsCreating] = useState(false)
   const [newPhaseName, setNewPhaseName] = useState('')
+  const [newPhaseType, setNewPhaseType] = useState('random')
   const [newPhaseMinDelay, setNewPhaseMinDelay] = useState(1)
   const [newPhaseMaxDelay, setNewPhaseMaxDelay] = useState(3)
+  const [soundRepetitions, setSoundRepetitions] = useState(1)
   const [selectedRecordings, setSelectedRecordings] = useState([])
 
   const handleCreatePhase = () => {
@@ -22,15 +24,19 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
     onCreatePhase({
       id: Date.now(),
       name: newPhaseName.trim(),
+      type: newPhaseType,
       minDelay: newPhaseMinDelay,
       maxDelay: newPhaseMaxDelay,
+      soundRepetitions: soundRepetitions,
       recordingIds: selectedRecordings
     })
 
     // Reset form
     setNewPhaseName('')
+    setNewPhaseType('random')
     setNewPhaseMinDelay(1)
     setNewPhaseMaxDelay(3)
+    setSoundRepetitions(1)
     setSelectedRecordings([])
     setIsCreating(false)
   }
@@ -68,6 +74,30 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
                 onChange={(e) => setNewPhaseName(e.target.value)}
               />
             </div>
+
+            <div className="form-group">
+              <label>Phase Type</label>
+              <select
+                value={newPhaseType}
+                onChange={(e) => setNewPhaseType(e.target.value)}
+              >
+                <option value="random">Random Timing</option>
+                <option value="roundRobin">Round Robin</option>
+              </select>
+            </div>
+
+            {newPhaseType === 'roundRobin' && (
+              <div className="form-group">
+                <label>Sound Repetitions (how many times each sound plays before moving to next)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={soundRepetitions}
+                  onChange={(e) => setSoundRepetitions(parseInt(e.target.value) || 1)}
+                  placeholder="e.g., 2 for A-A-B-B-C-C"
+                />
+              </div>
+            )}
 
             <div className="form-row">
               <div className="form-group">
@@ -131,6 +161,10 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
                 <div className="phase-details">
                   <span className="phase-stat">🎵 {phase.recordingIds.length} recordings</span>
                   <span className="phase-stat">⏱️ {phase.minDelay}s - {phase.maxDelay}s</span>
+                  <span className="phase-stat">🔀 {phase.type === 'roundRobin' ? 'Round Robin' : 'Random Timing'}</span>
+                  {phase.type === 'roundRobin' && phase.soundRepetitions > 1 && (
+                    <span className="phase-stat">🔁 {phase.soundRepetitions}x per sound</span>
+                  )}
                 </div>
               </div>
               <div className="phase-actions">
