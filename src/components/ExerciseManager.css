@@ -283,10 +283,17 @@
     color: white;
 }
 
-.btn-start-exercise:hover {
+.btn-start-exercise:hover:not(:disabled) {
     background-color: #dd6b20;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(237, 137, 54, 0.4);
+}
+
+.btn-start-exercise:disabled {
+    background-color: #cbd5e0;
+    color: #a0aec0;
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 .btn-stop-exercise {
@@ -312,6 +319,25 @@
 .btn-delete-exercise:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.btn-favorite {
+    background-color: #fef3c7;
+    color: #92400e;
+    border: 2px solid #fbbf24;
+    font-size: 1.2em;
+    padding: 6px 12px;
+}
+
+.btn-favorite:hover {
+    background-color: #fde68a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+.btn-favorite.is-favorite {
+    background-color: #fbbf24;
+    color: #78350f;
 }
 
 @media (max-width: 600px) {

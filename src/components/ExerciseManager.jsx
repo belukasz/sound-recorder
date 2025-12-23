@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './ExerciseManager.css'
 
-function ExerciseManager({ phases, exercises, onCreateExercise, onDeleteExercise, onStartExercise, isPlayingExercise, onStopExercise }) {
+function ExerciseManager({ phases, exercises, onCreateExercise, onDeleteExercise, onStartExercise, onToggleFavorite, isPlayingExercise, currentPlayingExerciseId, onStopExercise }) {
   const [isCreating, setIsCreating] = useState(false)
   const [newExerciseName, setNewExerciseName] = useState('')
   const [selectedPhases, setSelectedPhases] = useState([])
@@ -69,6 +69,57 @@ function ExerciseManager({ phases, exercises, onCreateExercise, onDeleteExercise
     const phase = phases.find(p => p.id === phaseId)
     return phase ? phase.name : 'Unknown Phase'
   }
+
+  const ExerciseItem = ({ exercise, getPhaseName, onStartExercise, onToggleFavorite, onDeleteExercise, isPlayingExercise, currentPlayingExerciseId, onStopExercise }) => (
+    <div key={exercise.id} className="exercise-item">
+      <div className="exercise-info">
+        <h4>{exercise.name}</h4>
+        <div className="exercise-details">
+          <span className="exercise-stat">📋 {exercise.phaseIds.length} phases</span>
+          <span className="exercise-stat">🔄 {exercise.repetitions || 1}x repetitions</span>
+          <div className="exercise-phases-preview">
+            {exercise.phaseIds.map((phaseId, idx) => (
+              <span key={phaseId} className="phase-badge">
+                {idx + 1}. {getPhaseName(phaseId)}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="exercise-actions">
+        <button
+          className={`btn-exercise-action btn-favorite ${exercise.isFavorite ? 'is-favorite' : ''}`}
+          onClick={() => onToggleFavorite(exercise.id)}
+          title={exercise.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          {exercise.isFavorite ? '⭐' : '☆'}
+        </button>
+        {currentPlayingExerciseId === exercise.id ? (
+          <button
+            className="btn-exercise-action btn-stop-exercise"
+            onClick={onStopExercise}
+          >
+            Stop
+          </button>
+        ) : (
+          <button
+            className="btn-exercise-action btn-start-exercise"
+            onClick={() => onStartExercise(exercise.id)}
+            disabled={isPlayingExercise}
+          >
+            Start
+          </button>
+        )}
+        <button
+          className="btn-exercise-action btn-delete-exercise"
+          onClick={() => onDeleteExercise(exercise.id)}
+          disabled={isPlayingExercise}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div className="exercise-manager">
@@ -170,46 +221,18 @@ function ExerciseManager({ phases, exercises, onCreateExercise, onDeleteExercise
           <p className="no-exercises">No exercises created yet. Click "Create Exercise" to get started.</p>
         ) : (
           exercises.map(exercise => (
-            <div key={exercise.id} className="exercise-item">
-              <div className="exercise-info">
-                <h4>{exercise.name}</h4>
-                <div className="exercise-details">
-                  <span className="exercise-stat">📋 {exercise.phaseIds.length} phases</span>
-                  <span className="exercise-stat">🔄 {exercise.repetitions || 1}x repetitions</span>
-                  <div className="exercise-phases-preview">
-                    {exercise.phaseIds.map((phaseId, idx) => (
-                      <span key={phaseId} className="phase-badge">
-                        {idx + 1}. {getPhaseName(phaseId)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="exercise-actions">
-                {isPlayingExercise ? (
-                  <button
-                    className="btn-exercise-action btn-stop-exercise"
-                    onClick={onStopExercise}
-                  >
-                    Stop
-                  </button>
-                ) : (
-                  <button
-                    className="btn-exercise-action btn-start-exercise"
-                    onClick={() => onStartExercise(exercise.id)}
-                  >
-                    Start
-                  </button>
-                )}
-                <button
-                  className="btn-exercise-action btn-delete-exercise"
-                  onClick={() => onDeleteExercise(exercise.id)}
-                  disabled={isPlayingExercise}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
+            <ExerciseItem
+              key={exercise.id}
+              exercise={exercise}
+              phases={phases}
+              getPhaseName={getPhaseName}
+              onStartExercise={onStartExercise}
+              onToggleFavorite={onToggleFavorite}
+              onDeleteExercise={onDeleteExercise}
+              isPlayingExercise={isPlayingExercise}
+              currentPlayingExerciseId={currentPlayingExerciseId}
+              onStopExercise={onStopExercise}
+            />
           ))
         )}
       </div>

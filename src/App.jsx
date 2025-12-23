@@ -6,6 +6,7 @@ import PhaseManager from './components/PhaseManager'
 import ExerciseManager from './components/ExerciseManager'
 import ExercisePlayer from './components/ExercisePlayer'
 import DataManager from './components/DataManager'
+import FavoriteExercises from './components/FavoriteExercises'
 import CollapsibleSection from './components/CollapsibleSection'
 import * as db from './utils/indexedDB'
 import './App.css'
@@ -15,6 +16,7 @@ function App() {
   const [isRecording, setIsRecording] = useState(false)
   const [status, setStatus] = useState({ message: '', type: '' })
   const [isPlayingExercise, setIsPlayingExercise] = useState(false)
+  const [currentPlayingExerciseId, setCurrentPlayingExerciseId] = useState(null)
   const [phases, setPhases] = useState([])
   const [exercises, setExercises] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -186,15 +188,11 @@ function App() {
       currentAudioRef.current.currentTime = 0
       currentAudioRef.current = null
     }
-    setIsPlayingExercise(false)
-    // Reset player state
-    setCurrentExerciseName('')
-    setCurrentPhaseName('')
-    setCurrentRep(0)
-    setTotalReps(0)
-    setCurrentPhaseIndex(0)
-    setTotalPhases(0)
-    setPlayerStatus('')
+    // Don't set isPlayingExercise to false here - let the async function complete and set it
+    // This prevents starting a new exercise while the previous one is still cleaning up
+    setPlayerStatus('Stopping...')
+    // Clear the current playing exercise ID when stopping
+    setCurrentPlayingExerciseId(null)
   }
 
   // Helper function to get timing for a recording in exact timing mode
@@ -231,6 +229,12 @@ function App() {
     setExercises(prev => prev.filter(e => e.id !== exerciseId))
   }
 
+  const toggleFavorite = (exerciseId) => {
+    setExercises(prev => prev.map(e =>
+      e.id === exerciseId ? { ...e, isFavorite: !e.isFavorite } : e
+    ))
+  }
+
   const startExercise = async (exerciseId) => {
     // Prevent starting multiple exercises
     if (isPlayingExercise) {
@@ -243,6 +247,7 @@ function App() {
     if (!exercise) return
 
     setIsPlayingExercise(true)
+    setCurrentPlayingExerciseId(exerciseId)
     exerciseStoppedRef.current = false
     setStatus({ message: `Starting exercise: ${exercise.name}`, type: 'recording' })
 
@@ -258,6 +263,7 @@ function App() {
     if (exercisePhases.length === 0) {
       setStatus({ message: 'No valid phases in this exercise', type: 'error' })
       setIsPlayingExercise(false)
+      setCurrentPlayingExerciseId(null)
       setCurrentExerciseName('')
       setTotalReps(0)
       setTimeout(() => setStatus({ message: '', type: '' }), 3000)
@@ -442,6 +448,7 @@ function App() {
     }
 
     setIsPlayingExercise(false)
+    setCurrentPlayingExerciseId(null)
     // Reset player state
     setCurrentExerciseName('')
     setCurrentPhaseName('')
@@ -490,6 +497,12 @@ function App() {
     if (phaseRecordings.length === 0) {
       setStatus({ message: 'No valid recordings in this phase', type: 'error' })
       setIsPlayingExercise(false)
+      setCurrentExerciseName('')
+      setCurrentPhaseName('')
+      setCurrentRep(0)
+      setTotalReps(0)
+      setCurrentPhaseIndex(0)
+      setTotalPhases(0)
       setTimeout(() => setStatus({ message: '', type: '' }), 3000)
       return
     }
@@ -652,12 +665,6 @@ function App() {
     <div className="container">
       <h1>⚡ Timing Trainer</h1>
 
-      <RecordingControls
-        isRecording={isRecording}
-        onStartRecording={startRecording}
-        onStopRecording={stopRecording}
-      />
-
       <StatusMessage message={status.message} type={status.type} />
 
       {isPlayingExercise && (
@@ -673,7 +680,26 @@ function App() {
         />
       )}
 
-      <CollapsibleSection title="Recordings" defaultExpanded={true}>
+      <FavoriteExercises
+        exercises={exercises}
+        phases={phases}
+        onStartExercise={startExercise}
+        onToggleFavorite={toggleFavorite}
+        isPlayingExercise={isPlayingExercise}
+        currentPlayingExerciseId={currentPlayingExerciseId}
+        onStopExercise={stopExercise}
+      />
+
+      <CollapsibleSection
+        title="Recordings"
+        defaultExpanded={true}
+        summary={recordings.length > 0 ? `${recordings.length} recording${recordings.length !== 1 ? 's' : ''}` : 'No recordings yet'}
+      >
+        <RecordingControls
+          isRecording={isRecording}
+          onStartRecording={startRecording}
+          onStopRecording={stopRecording}
+        />
         <RecordingsList
           recordings={recordings}
           onPlay={playRecording}
@@ -682,7 +708,15 @@ function App() {
         />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Phases" defaultExpanded={false}>
+      <CollapsibleSection
+        title="Phases"
+        defaultExpanded={false}
+        summary={
+          phases.length > 0
+            ? `${phases.length} phase${phases.length !== 1 ? 's' : ''} • ${phases.filter(p => p.type === 'roundRobin').length} round robin • ${phases.filter(p => p.type === 'exactTiming').length} exact timing`
+            : 'No phases yet'
+        }
+      >
         <PhaseManager
           recordings={recordings}
           phases={phases}
@@ -695,19 +729,33 @@ function App() {
         />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Exercises" defaultExpanded={false}>
+      <CollapsibleSection
+        title="Exercises"
+        defaultExpanded={false}
+        summary={
+          exercises.length > 0
+            ? `${exercises.length} exercise${exercises.length !== 1 ? 's' : ''} • ${exercises.filter(e => e.isFavorite).length} favorite${exercises.filter(e => e.isFavorite).length !== 1 ? 's' : ''} • ${exercises.reduce((sum, e) => sum + (e.phaseIds?.length || 0), 0)} total phases`
+            : 'No exercises yet'
+        }
+      >
         <ExerciseManager
           phases={phases}
           exercises={exercises}
           onCreateExercise={createExercise}
           onDeleteExercise={deleteExercise}
           onStartExercise={startExercise}
+          onToggleFavorite={toggleFavorite}
           isPlayingExercise={isPlayingExercise}
+          currentPlayingExerciseId={currentPlayingExerciseId}
           onStopExercise={stopExercise}
         />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Data Management" defaultExpanded={false}>
+      <CollapsibleSection
+        title="Data Management"
+        defaultExpanded={false}
+        summary="Export & import your data"
+      >
         <DataManager />
       </CollapsibleSection>
     </div>

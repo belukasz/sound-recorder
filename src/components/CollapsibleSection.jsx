@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './CollapsibleSection.css'
 
-function CollapsibleSection({ title, children, defaultExpanded = true }) {
+function CollapsibleSection({ title, children, defaultExpanded = true, summary }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
   return (
@@ -10,7 +10,12 @@ function CollapsibleSection({ title, children, defaultExpanded = true }) {
         className="collapsible-header"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <h2>{title}</h2>
+        <div className="collapsible-header-content">
+          <h2>{title}</h2>
+          {!isExpanded && summary && (
+            <div className="collapsible-summary">{summary}</div>
+          )}
+        </div>
         <span className="collapse-icon">{isExpanded ? '▼' : '▶'}</span>
       </div>
 

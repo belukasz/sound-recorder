@@ -27,11 +27,28 @@
     background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
 }
 
+.collapsible-header-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
 .collapsible-header h2 {
     margin: 0;
     color: #1e40af;
     font-size: 1.3em;
     font-weight: 600;
+}
+
+.collapsible-summary {
+    font-size: 0.9em;
+    color: #475569;
+    font-weight: 500;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 4px;
 }
 
 .collapse-icon {
