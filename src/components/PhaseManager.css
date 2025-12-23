@@ -119,6 +119,39 @@
     font-weight: 500;
 }
 
+.exact-timing-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.exact-timing-item:hover {
+    background-color: #edf2f7;
+}
+
+.timing-input {
+    padding: 8px 10px;
+    border: 2px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 0.9em;
+    transition: border-color 0.2s ease;
+    font-family: inherit;
+}
+
+.timing-input:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.timing-input::placeholder {
+    color: #a0aec0;
+    font-style: italic;
+}
+
 .no-recordings {
     color: #a0aec0;
     font-style: italic;

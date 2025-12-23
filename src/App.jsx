@@ -197,6 +197,18 @@ function App() {
     setPlayerStatus('')
   }
 
+  // Helper function to get timing for a recording in exact timing mode
+  const getExactTiming = (phase, recordingId) => {
+    const timingsStr = phase.exactTimings?.[recordingId]
+    if (!timingsStr) return 1 // fallback
+
+    const timings = timingsStr.split(',').map(t => parseFloat(t.trim())).filter(t => !isNaN(t) && t >= 0)
+    if (timings.length === 0) return 1 // fallback
+
+    // Random: pick random timing from the list
+    return timings[Math.floor(Math.random() * timings.length)]
+  }
+
   const createPhase = (phase) => {
     setPhases(prev => [...prev, phase])
   }
@@ -278,7 +290,52 @@ function App() {
           continue // Skip this phase if no recordings
         }
 
-        if (phase.type === 'roundRobin') {
+        if (phase.type === 'exactTiming') {
+          // Exact Timing: Play ALL recordings with custom timings for this phase
+          for (let i = 0; i < phaseRecordings.length; i++) {
+            if (exerciseStoppedRef.current) break
+
+            const selectedRecording = phaseRecordings[i]
+
+            // Get exact timing for this recording (randomly selected from list)
+            const delay = getExactTiming(phase, selectedRecording.id) * 1000
+
+            const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
+            setStatus({
+              message: `Rep ${rep + 1}/${totalRepetitions} - Phase ${phaseIndex + 1}/${exercisePhases.length} (${phase.name}): ${waitMessage}`,
+              type: 'recording'
+            })
+            setPlayerStatus(waitMessage)
+
+            await new Promise(resolve => setTimeout(resolve, delay))
+
+            if (exerciseStoppedRef.current) break
+
+            const playMessage = `Playing ${selectedRecording.name} (${i + 1}/${phaseRecordings.length})`
+            setStatus({
+              message: `Rep ${rep + 1}/${totalRepetitions} - Phase ${phaseIndex + 1}/${exercisePhases.length} (${phase.name}): ${playMessage}`,
+              type: 'recording'
+            })
+            setPlayerStatus(playMessage)
+
+            // Play the recording
+            await new Promise((resolve) => {
+              const audio = new Audio(selectedRecording.url)
+              currentAudioRef.current = audio
+
+              audio.onended = () => {
+                resolve()
+              }
+
+              audio.onerror = () => {
+                console.error('Error playing recording:', selectedRecording.name)
+                resolve()
+              }
+
+              audio.play()
+            })
+          }
+        } else if (phase.type === 'roundRobin') {
           // Round Robin: Play ALL recordings in sequence with repetitions for this phase
           const repsPerSound = phase.soundRepetitions || 1
 
@@ -437,7 +494,49 @@ function App() {
       return
     }
 
-    if (phase.type === 'roundRobin') {
+    if (phase.type === 'exactTiming') {
+      // Exact Timing: Play recordings with custom timings per sound
+      while (!exerciseStoppedRef.current) {
+        // Play through all recordings in order
+        for (let i = 0; i < phaseRecordings.length; i++) {
+          if (exerciseStoppedRef.current) break
+
+          const selectedRecording = phaseRecordings[i]
+
+          // Get exact timing for this recording (randomly selected from list)
+          const delay = getExactTiming(phase, selectedRecording.id) * 1000
+
+          const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
+          setStatus({ message: `${phase.name}: ${waitMessage}`, type: 'recording' })
+          setPlayerStatus(waitMessage)
+
+          await new Promise(resolve => setTimeout(resolve, delay))
+
+          if (exerciseStoppedRef.current) break
+
+          const playMessage = `Playing ${selectedRecording.name} (${i + 1}/${phaseRecordings.length})`
+          setStatus({ message: `${phase.name}: ${playMessage}`, type: 'recording' })
+          setPlayerStatus(playMessage)
+
+          // Play the recording
+          await new Promise((resolve) => {
+            const audio = new Audio(selectedRecording.url)
+            currentAudioRef.current = audio
+
+            audio.onended = () => {
+              resolve()
+            }
+
+            audio.onerror = () => {
+              console.error('Error playing recording:', selectedRecording.name)
+              resolve()
+            }
+
+            audio.play()
+          })
+        }
+      }
+    } else if (phase.type === 'roundRobin') {
       // Round Robin: Play all recordings in sequence with repetitions, continuously
       const repsPerSound = phase.soundRepetitions || 1
 
