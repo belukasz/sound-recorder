@@ -267,9 +267,66 @@ function App() {
     exerciseStoppedRef.current = false
     setStatus({ message: `Starting exercise: ${exercise.name}`, type: 'recording' })
 
-    // Initialize player state
-    setCurrentExerciseName(exercise.name)
-    setTotalReps(exercise.repetitions || 1)
+    // Handle timed exercise
+    if (exercise.type === 'timed') {
+      setCurrentExerciseName(exercise.name)
+      setTotalReps(1)
+      setCurrentRep(1)
+      setTotalPhases(1)
+      setCurrentPhaseIndex(1)
+
+      // Play start recording if configured
+      if (exercise.startRecordingId) {
+        const startRecording = recordings.find(r => r.id === exercise.startRecordingId)
+        if (startRecording) {
+          setPlayerStatus('Playing start sound...')
+          await new Promise((resolve) => {
+            const audio = new Audio(startRecording.url)
+            currentAudioRef.current = audio
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+            audio.play()
+          })
+        }
+      }
+
+      if (exerciseStoppedRef.current) {
+        return
+      }
+
+      // Countdown timer
+      const endTime = Date.now() + (exercise.duration * 1000)
+      while (Date.now() < endTime && !exerciseStoppedRef.current) {
+        const remaining = Math.ceil((endTime - Date.now()) / 1000)
+        setPlayerStatus(`${remaining}s remaining`)
+        setCurrentPhaseName(`${remaining}s`)
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+
+      if (exerciseStoppedRef.current) {
+        return
+      }
+
+      // Play end recording if configured
+      if (exercise.endRecordingId) {
+        const endRecording = recordings.find(r => r.id === exercise.endRecordingId)
+        if (endRecording) {
+          setPlayerStatus('Playing end sound...')
+          await new Promise((resolve) => {
+            const audio = new Audio(endRecording.url)
+            currentAudioRef.current = audio
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+            audio.play()
+          })
+        }
+      }
+
+      // Cleanup handled at end of function
+    } else {
+      // Phased exercise - existing logic
+      setCurrentExerciseName(exercise.name)
+      setTotalReps(exercise.repetitions || 1)
 
     // Get all phases for this exercise in order
     const exercisePhases = exercise.phaseIds
@@ -462,6 +519,7 @@ function App() {
         }
       }
     }
+    } // End of phased exercise else block
 
     // Only clean up if not already stopped (stopExercise already cleaned up)
     if (!exerciseStoppedRef.current) {
@@ -700,6 +758,7 @@ function App() {
       <FavoriteExercises
         exercises={exercises}
         phases={phases}
+        recordings={recordings}
         onStartExercise={startExercise}
         onToggleFavorite={toggleFavorite}
         isPlayingExercise={isPlayingExercise}
@@ -759,6 +818,7 @@ function App() {
         <ExerciseManager
           phases={phases}
           exercises={exercises}
+          recordings={recordings}
           onCreateExercise={createExercise}
           onDeleteExercise={deleteExercise}
           onStartExercise={startExercise}

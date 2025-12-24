@@ -1,11 +1,17 @@
 import { useState } from 'react'
 import './ExerciseManager.css'
 
-function ExerciseManager({ phases, exercises, onCreateExercise, onDeleteExercise, onStartExercise, onToggleFavorite, isPlayingExercise, currentPlayingExerciseId, onStopExercise }) {
+function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onDeleteExercise, onStartExercise, onToggleFavorite, isPlayingExercise, currentPlayingExerciseId, onStopExercise }) {
   const [isCreating, setIsCreating] = useState(false)
+  const [exerciseType, setExerciseType] = useState('phased')
   const [newExerciseName, setNewExerciseName] = useState('')
   const [selectedPhases, setSelectedPhases] = useState([])
   const [repetitions, setRepetitions] = useState(1)
+  // Timed exercise fields
+  const [duration, setDuration] = useState(60)
+  const [startRecordingId, setStartRecordingId] = useState(null)
+  const [endRecordingId, setEndRecordingId] = useState(null)
+  const [recordingLabelFilter, setRecordingLabelFilter] = useState('')
 
   const handleCreateExercise = () => {
     if (!newExerciseName.trim()) {
@@ -13,27 +19,50 @@ function ExerciseManager({ phases, exercises, onCreateExercise, onDeleteExercise
       return
     }
 
-    if (selectedPhases.length === 0) {
-      alert('Please select at least one phase')
-      return
-    }
+    if (exerciseType === 'phased') {
+      if (selectedPhases.length === 0) {
+        alert('Please select at least one phase')
+        return
+      }
 
-    if (repetitions < 1) {
-      alert('Repetitions must be at least 1')
-      return
-    }
+      if (repetitions < 1) {
+        alert('Repetitions must be at least 1')
+        return
+      }
 
-    onCreateExercise({
-      id: Date.now(),
-      name: newExerciseName.trim(),
-      phaseIds: selectedPhases,
-      repetitions: repetitions
-    })
+      onCreateExercise({
+        id: Date.now(),
+        type: 'phased',
+        name: newExerciseName.trim(),
+        phaseIds: selectedPhases,
+        repetitions: repetitions
+      })
+    } else {
+      // Timed exercise
+      if (duration < 1) {
+        alert('Duration must be at least 1 second')
+        return
+      }
+
+      onCreateExercise({
+        id: Date.now(),
+        type: 'timed',
+        name: newExerciseName.trim(),
+        duration: duration,
+        startRecordingId: startRecordingId,
+        endRecordingId: endRecordingId
+      })
+    }
 
     // Reset form
+    setExerciseType('phased')
     setNewExerciseName('')
     setSelectedPhases([])
     setRepetitions(1)
+    setDuration(60)
+    setStartRecordingId(null)
+    setEndRecordingId(null)
+    setRecordingLabelFilter('')
     setIsCreating(false)
   }
 
@@ -70,20 +99,44 @@ function ExerciseManager({ phases, exercises, onCreateExercise, onDeleteExercise
     return phase ? phase.name : 'Unknown Phase'
   }
 
+  // Get all unique labels from recordings
+  const allRecordingLabels = [...new Set(recordings.flatMap(r => r.labels || []))].sort()
+
+  // Filter recordings by selected label for timed exercise
+  const filteredTimedRecordings = recordingLabelFilter
+    ? recordings.filter(r => (r.labels || []).includes(recordingLabelFilter))
+    : recordings
+
   const ExerciseItem = ({ exercise, getPhaseName, onStartExercise, onToggleFavorite, onDeleteExercise, isPlayingExercise, currentPlayingExerciseId, onStopExercise }) => (
     <div key={exercise.id} className="exercise-item">
       <div className="exercise-info">
         <h4>{exercise.name}</h4>
         <div className="exercise-details">
-          <span className="exercise-stat">📋 {exercise.phaseIds.length} phases</span>
-          <span className="exercise-stat">🔄 {exercise.repetitions || 1}x repetitions</span>
-          <div className="exercise-phases-preview">
-            {exercise.phaseIds.map((phaseId, idx) => (
-              <span key={phaseId} className="phase-badge">
-                {idx + 1}. {getPhaseName(phaseId)}
-              </span>
-            ))}
-          </div>
+          {exercise.type === 'timed' ? (
+            <>
+              <span className="exercise-stat">⏱️ {exercise.duration} seconds</span>
+              {exercise.startRecordingId && (
+                <span className="exercise-stat">▶️ Start sound</span>
+              )}
+              {exercise.endRecordingId && (
+                <span className="exercise-stat">⏹️ End sound</span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="exercise-stat">📋 {exercise.phaseIds?.length || 0} phases</span>
+              <span className="exercise-stat">🔄 {exercise.repetitions || 1}x repetitions</span>
+              {exercise.phaseIds && (
+                <div className="exercise-phases-preview">
+                  {exercise.phaseIds.map((phaseId, idx) => (
+                    <span key={phaseId} className="phase-badge">
+                      {idx + 1}. {getPhaseName(phaseId)}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
       <div className="exercise-actions">
@@ -148,18 +201,31 @@ function ExerciseManager({ phases, exercises, onCreateExercise, onDeleteExercise
             </div>
 
             <div className="form-group">
-              <label>Repetitions</label>
-              <input
-                type="number"
-                min="1"
-                value={repetitions}
-                onChange={(e) => setRepetitions(parseInt(e.target.value) || 1)}
-                placeholder="How many times to repeat the exercise"
-              />
+              <label>Exercise Type</label>
+              <select
+                value={exerciseType}
+                onChange={(e) => setExerciseType(e.target.value)}
+              >
+                <option value="phased">Phased (Multiple phases in sequence)</option>
+                <option value="timed">Timed (Fixed duration with countdown)</option>
+              </select>
             </div>
 
-            <div className="form-group">
-              <label>Select Phases ({selectedPhases.length} selected)</label>
+            {exerciseType === 'phased' ? (
+              <>
+                <div className="form-group">
+                  <label>Repetitions</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={repetitions}
+                    onChange={(e) => setRepetitions(parseInt(e.target.value) || 1)}
+                    placeholder="How many times to repeat the exercise"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Select Phases ({selectedPhases.length} selected)</label>
               <div className="phases-selector">
                 {phases.length === 0 ? (
                   <p className="no-phases-text">No phases available. Create some phases first.</p>
@@ -207,6 +273,78 @@ function ExerciseManager({ phases, exercises, onCreateExercise, onDeleteExercise
                   ))}
                 </div>
               </div>
+            )}
+              </>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label>Duration (seconds)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={duration}
+                    onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
+                    placeholder="Duration in seconds"
+                  />
+                </div>
+
+                {allRecordingLabels.length > 0 && (
+                  <div className="form-group">
+                    <label>Filter Recordings by Label</label>
+                    <div className="label-filter">
+                      <select
+                        value={recordingLabelFilter}
+                        onChange={(e) => setRecordingLabelFilter(e.target.value)}
+                        className="label-filter-select"
+                      >
+                        <option value="">All recordings</option>
+                        {allRecordingLabels.map(label => (
+                          <option key={label} value={label}>{label}</option>
+                        ))}
+                      </select>
+                      {recordingLabelFilter && (
+                        <button
+                          className="btn-clear-filter"
+                          onClick={() => setRecordingLabelFilter('')}
+                          title="Clear filter"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label>Start Recording (optional)</label>
+                  <select
+                    value={startRecordingId || ''}
+                    onChange={(e) => setStartRecordingId(e.target.value ? parseInt(e.target.value) : null)}
+                  >
+                    <option value="">No recording</option>
+                    {filteredTimedRecordings.map(recording => (
+                      <option key={recording.id} value={recording.id}>
+                        {recording.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>End Recording (optional)</label>
+                  <select
+                    value={endRecordingId || ''}
+                    onChange={(e) => setEndRecordingId(e.target.value ? parseInt(e.target.value) : null)}
+                  >
+                    <option value="">No recording</option>
+                    {filteredTimedRecordings.map(recording => (
+                      <option key={recording.id} value={recording.id}>
+                        {recording.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
 
             <button className="btn-save-exercise" onClick={handleCreateExercise}>

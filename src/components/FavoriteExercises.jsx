@@ -1,6 +1,6 @@
 import './FavoriteExercises.css'
 
-function FavoriteExercises({ exercises, phases, onStartExercise, onToggleFavorite, isPlayingExercise, currentPlayingExerciseId, onStopExercise }) {
+function FavoriteExercises({ exercises, phases, recordings, onStartExercise, onToggleFavorite, isPlayingExercise, currentPlayingExerciseId, onStopExercise }) {
   const favoriteExercises = exercises.filter(e => e.isFavorite)
 
   const getPhaseName = (phaseId) => {
@@ -21,16 +21,32 @@ function FavoriteExercises({ exercises, phases, onStartExercise, onToggleFavorit
             <div className="favorite-exercise-info">
               <h3>{exercise.name}</h3>
               <div className="favorite-exercise-details">
-                <span className="exercise-stat">📋 {exercise.phaseIds.length} phases</span>
-                <span className="exercise-stat">🔄 {exercise.repetitions || 1}x repetitions</span>
+                {exercise.type === 'timed' ? (
+                  <>
+                    <span className="exercise-stat">⏱️ {exercise.duration} seconds</span>
+                    {exercise.startRecordingId && (
+                      <span className="exercise-stat">▶️ Start sound</span>
+                    )}
+                    {exercise.endRecordingId && (
+                      <span className="exercise-stat">⏹️ End sound</span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span className="exercise-stat">📋 {exercise.phaseIds?.length || 0} phases</span>
+                    <span className="exercise-stat">🔄 {exercise.repetitions || 1}x repetitions</span>
+                  </>
+                )}
               </div>
-              <div className="exercise-phases-preview">
-                {exercise.phaseIds.map((phaseId, idx) => (
-                  <span key={phaseId} className="phase-badge">
-                    {idx + 1}. {getPhaseName(phaseId)}
-                  </span>
-                ))}
-              </div>
+              {exercise.type !== 'timed' && exercise.phaseIds && (
+                <div className="exercise-phases-preview">
+                  {exercise.phaseIds.map((phaseId, idx) => (
+                    <span key={phaseId} className="phase-badge">
+                      {idx + 1}. {getPhaseName(phaseId)}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="favorite-exercise-actions">
               <button

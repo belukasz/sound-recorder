@@ -47,7 +47,8 @@ export const saveRecording = async (recording) => {
       id: recording.id,
       name: recording.name,
       timestamp: recording.timestamp,
-      blob: recording.blob
+      blob: recording.blob,
+      labels: recording.labels || []
     }
 
     const request = store.put(recordingData)
@@ -67,7 +68,8 @@ export const getAllRecordings = async () => {
       // Convert blobs back to URLs
       const recordings = request.result.map(rec => ({
         ...rec,
-        url: URL.createObjectURL(rec.blob)
+        url: URL.createObjectURL(rec.blob),
+        labels: rec.labels || [] // Ensure labels field exists for backwards compatibility
       }))
       resolve(recordings)
     }
@@ -175,7 +177,8 @@ export const exportAllData = async () => {
         id: rec.id,
         name: rec.name,
         timestamp: rec.timestamp,
-        audioData: base64
+        audioData: base64,
+        labels: rec.labels || []
       }
     })
   )
@@ -205,7 +208,8 @@ export const importAllData = async (data) => {
       id: rec.id,
       name: rec.name,
       timestamp: rec.timestamp,
-      blob: blob
+      blob: blob,
+      labels: rec.labels || []
     })
   }
 
