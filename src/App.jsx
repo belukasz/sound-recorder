@@ -150,7 +150,8 @@ function App() {
       blob: audioBlob,
       url: URL.createObjectURL(audioBlob),
       timestamp: new Date().toLocaleString(),
-      name: `Recording ${recordings.length + 1}`
+      name: `Recording ${recordings.length + 1}`,
+      labels: []
     }
 
     setRecordings(prev => [recording, ...prev])
@@ -181,6 +182,14 @@ function App() {
     ))
   }
 
+  const updateRecordingLabels = (id, labels) => {
+    setRecordings(prev => prev.map(recording =>
+      recording.id === id
+        ? { ...recording, labels }
+        : recording
+    ))
+  }
+
   const stopExercise = () => {
     exerciseStoppedRef.current = true
     if (currentAudioRef.current) {
@@ -188,11 +197,18 @@ function App() {
       currentAudioRef.current.currentTime = 0
       currentAudioRef.current = null
     }
-    // Don't set isPlayingExercise to false here - let the async function complete and set it
-    // This prevents starting a new exercise while the previous one is still cleaning up
-    setPlayerStatus('Stopping...')
-    // Clear the current playing exercise ID when stopping
+    // Immediately clean up state - the async function will break out at next checkpoint
+    setIsPlayingExercise(false)
     setCurrentPlayingExerciseId(null)
+    setCurrentExerciseName('')
+    setCurrentPhaseName('')
+    setCurrentRep(0)
+    setTotalReps(0)
+    setCurrentPhaseIndex(0)
+    setTotalPhases(0)
+    setPlayerStatus('')
+    setStatus({ message: 'Exercise stopped', type: '' })
+    setTimeout(() => setStatus({ message: '', type: '' }), 2000)
   }
 
   // Helper function to get timing for a recording in exact timing mode
@@ -447,23 +463,21 @@ function App() {
       }
     }
 
-    setIsPlayingExercise(false)
-    setCurrentPlayingExerciseId(null)
-    // Reset player state
-    setCurrentExerciseName('')
-    setCurrentPhaseName('')
-    setCurrentRep(0)
-    setTotalReps(0)
-    setCurrentPhaseIndex(0)
-    setTotalPhases(0)
-    setPlayerStatus('')
-
-    if (exerciseStoppedRef.current) {
-      setStatus({ message: 'Exercise stopped', type: '' })
-    } else {
+    // Only clean up if not already stopped (stopExercise already cleaned up)
+    if (!exerciseStoppedRef.current) {
+      setIsPlayingExercise(false)
+      setCurrentPlayingExerciseId(null)
+      // Reset player state
+      setCurrentExerciseName('')
+      setCurrentPhaseName('')
+      setCurrentRep(0)
+      setTotalReps(0)
+      setCurrentPhaseIndex(0)
+      setTotalPhases(0)
+      setPlayerStatus('')
       setStatus({ message: 'Exercise completed!', type: 'success' })
+      setTimeout(() => setStatus({ message: '', type: '' }), 3000)
     }
-    setTimeout(() => setStatus({ message: '', type: '' }), 3000)
   }
 
   const startPhase = async (phaseId) => {
@@ -648,17 +662,20 @@ function App() {
       }
     }
 
-    setIsPlayingExercise(false)
-    // Reset player state
-    setCurrentExerciseName('')
-    setCurrentPhaseName('')
-    setCurrentRep(0)
-    setTotalReps(0)
-    setCurrentPhaseIndex(0)
-    setTotalPhases(0)
-    setPlayerStatus('')
-    setStatus({ message: 'Phase stopped', type: '' })
-    setTimeout(() => setStatus({ message: '', type: '' }), 2000)
+    // Only clean up if not already stopped (stopExercise already cleaned up)
+    if (!exerciseStoppedRef.current) {
+      setIsPlayingExercise(false)
+      // Reset player state
+      setCurrentExerciseName('')
+      setCurrentPhaseName('')
+      setCurrentRep(0)
+      setTotalReps(0)
+      setCurrentPhaseIndex(0)
+      setTotalPhases(0)
+      setPlayerStatus('')
+      setStatus({ message: 'Phase completed', type: 'success' })
+      setTimeout(() => setStatus({ message: '', type: '' }), 2000)
+    }
   }
 
   return (
@@ -705,6 +722,7 @@ function App() {
           onPlay={playRecording}
           onDelete={deleteRecording}
           onRename={renameRecording}
+          onUpdateLabels={updateRecordingLabels}
         />
       </CollapsibleSection>
 

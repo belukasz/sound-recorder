@@ -79,3 +79,70 @@
 .btn-delete:hover {
     background-color: #f56565;
 }
+
+.recording-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    align-items: center;
+}
+
+.label-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background-color: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #7dd3fc;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.label-remove {
+    background: none;
+    border: none;
+    color: #0369a1;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 2px;
+    transition: color 0.2s ease;
+}
+
+.label-remove:hover {
+    color: #dc2626;
+}
+
+.label-input {
+    padding: 4px 8px;
+    border: 1px solid #7dd3fc;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-family: inherit;
+    max-width: 120px;
+}
+
+.label-input:focus {
+    outline: none;
+    border-color: #0369a1;
+}
+
+.btn-add-label {
+    padding: 4px 8px;
+    background-color: #f0f9ff;
+    color: #0369a1;
+    border: 1px dashed #7dd3fc;
+    border-radius: 4px;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-add-label:hover {
+    background-color: #e0f2fe;
+    border-style: solid;
+}

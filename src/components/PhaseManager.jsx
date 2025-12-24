@@ -10,6 +10,7 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
   const [soundRepetitions, setSoundRepetitions] = useState(1)
   const [selectedRecordings, setSelectedRecordings] = useState([])
   const [exactTimings, setExactTimings] = useState({}) // { recordingId: "1,2,3" }
+  const [labelFilter, setLabelFilter] = useState('') // Filter by label
 
   const handleCreatePhase = () => {
     if (!newPhaseName.trim()) {
@@ -86,6 +87,14 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
       [recordingId]: value
     }))
   }
+
+  // Get all unique labels from recordings
+  const allLabels = [...new Set(recordings.flatMap(r => r.labels || []))].sort()
+
+  // Filter recordings by selected label
+  const filteredRecordings = labelFilter
+    ? recordings.filter(r => (r.labels || []).includes(labelFilter))
+    : recordings
 
   return (
     <div className="phase-manager">
@@ -170,11 +179,40 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
                   ? 'Select Recordings and Set Timings'
                   : `Select Recordings (${selectedRecordings.length} selected)`}
               </label>
+
+              {allLabels.length > 0 && (
+                <div className="label-filter">
+                  <label htmlFor="label-filter">Filter by label:</label>
+                  <select
+                    id="label-filter"
+                    value={labelFilter}
+                    onChange={(e) => setLabelFilter(e.target.value)}
+                    className="label-filter-select"
+                  >
+                    <option value="">All recordings</option>
+                    {allLabels.map(label => (
+                      <option key={label} value={label}>{label}</option>
+                    ))}
+                  </select>
+                  {labelFilter && (
+                    <button
+                      className="btn-clear-filter"
+                      onClick={() => setLabelFilter('')}
+                      title="Clear filter"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div className="recordings-selector">
                 {recordings.length === 0 ? (
                   <p className="no-recordings">No recordings available. Create some recordings first.</p>
+                ) : filteredRecordings.length === 0 ? (
+                  <p className="no-recordings">No recordings with label "{labelFilter}".</p>
                 ) : newPhaseType === 'exactTiming' ? (
-                  recordings.map(recording => (
+                  filteredRecordings.map(recording => (
                     <div key={recording.id} className="exact-timing-item">
                       <label className="recording-checkbox-label">
                         <input
@@ -182,7 +220,16 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
                           checked={selectedRecordings.includes(recording.id)}
                           onChange={() => toggleRecordingSelection(recording.id)}
                         />
-                        <span>{recording.name}</span>
+                        <span className="recording-name-with-labels">
+                          {recording.name}
+                          {recording.labels && recording.labels.length > 0 && (
+                            <span className="recording-labels-inline">
+                              {recording.labels.map(label => (
+                                <span key={label} className="label-tag-small">{label}</span>
+                              ))}
+                            </span>
+                          )}
+                        </span>
                       </label>
                       {selectedRecordings.includes(recording.id) && (
                         <input
@@ -196,14 +243,23 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
                     </div>
                   ))
                 ) : (
-                  recordings.map(recording => (
+                  filteredRecordings.map(recording => (
                     <label key={recording.id} className="recording-checkbox-label">
                       <input
                         type="checkbox"
                         checked={selectedRecordings.includes(recording.id)}
                         onChange={() => toggleRecordingSelection(recording.id)}
                       />
-                      <span>{recording.name}</span>
+                      <span className="recording-name-with-labels">
+                        {recording.name}
+                        {recording.labels && recording.labels.length > 0 && (
+                          <span className="recording-labels-inline">
+                            {recording.labels.map(label => (
+                              <span key={label} className="label-tag-small">{label}</span>
+                            ))}
+                          </span>
+                        )}
+                      </span>
                     </label>
                   ))
                 )}

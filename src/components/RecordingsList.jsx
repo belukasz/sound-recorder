@@ -1,7 +1,7 @@
 import RecordingItem from './RecordingItem'
 import './RecordingsList.css'
 
-function RecordingsList({ recordings, onPlay, onDelete, onRename }) {
+function RecordingsList({ recordings, onPlay, onDelete, onRename, onUpdateLabels }) {
   if (recordings.length === 0) {
     return (
       <div className="recordings-list">
@@ -21,6 +21,7 @@ function RecordingsList({ recordings, onPlay, onDelete, onRename }) {
           onPlay={onPlay}
           onDelete={onDelete}
           onRename={onRename}
+          onUpdateLabels={onUpdateLabels}
         />
       ))}
     </div>

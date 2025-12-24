@@ -312,3 +312,79 @@
         font-size: 1em;
     }
 }
+
+/* Label filter styles */
+.label-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 10px;
+    background-color: #f7fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.label-filter label {
+    font-weight: 500;
+    color: #4a5568;
+    font-size: 0.9em;
+    margin: 0;
+}
+
+.label-filter-select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-family: inherit;
+    cursor: pointer;
+    background-color: white;
+}
+
+.label-filter-select:focus {
+    outline: none;
+    border-color: #4299e1;
+}
+
+.btn-clear-filter {
+    padding: 6px 10px;
+    background-color: #fc8181;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    transition: background-color 0.2s ease;
+}
+
+.btn-clear-filter:hover {
+    background-color: #f56565;
+}
+
+/* Recording labels inline */
+.recording-name-with-labels {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.recording-labels-inline {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.label-tag-small {
+    display: inline-block;
+    padding: 2px 6px;
+    background-color: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #7dd3fc;
+    border-radius: 3px;
+    font-size: 0.75em;
+    font-weight: 500;
+}
