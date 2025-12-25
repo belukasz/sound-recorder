@@ -360,6 +360,22 @@
     cursor: not-allowed;
 }
 
+.btn-favorite {
+    background-color: #fef3c7;
+    color: #92400e;
+    font-size: 1.2em;
+}
+
+.btn-favorite:hover {
+    background-color: #fde68a;
+    transform: translateY(-2px);
+}
+
+.btn-favorite.is-favorite {
+    background-color: #fbbf24;
+    color: #78350f;
+}
+
 @media (max-width: 600px) {
     .training-item {
         flex-direction: column;

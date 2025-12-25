@@ -9,6 +9,7 @@ import DataManager from './components/DataManager'
 import FavoriteExercises from './components/FavoriteExercises'
 import TrainingManager from './components/TrainingManager'
 import TrainingHistory from './components/TrainingHistory'
+import FavoriteTrainings from './components/FavoriteTrainings'
 import CollapsibleSection from './components/CollapsibleSection'
 import * as db from './utils/indexedDB'
 import './App.css'
@@ -271,6 +272,12 @@ function App() {
   const toggleFavorite = (exerciseId) => {
     setExercises(prev => prev.map(e =>
       e.id === exerciseId ? { ...e, isFavorite: !e.isFavorite } : e
+    ))
+  }
+
+  const toggleFavoriteTraining = (trainingId) => {
+    setTrainings(prev => prev.map(t =>
+      t.id === trainingId ? { ...t, isFavorite: !t.isFavorite } : t
     ))
   }
 
@@ -1055,6 +1062,16 @@ function App() {
         onStopExercise={stopExercise}
       />
 
+      <FavoriteTrainings
+        exercises={exercises}
+        trainings={trainings}
+        onStartTraining={startTraining}
+        onToggleFavorite={toggleFavoriteTraining}
+        isPlayingExercise={isPlayingExercise}
+        currentPlayingTrainingId={currentPlayingTrainingId}
+        onStopTraining={stopExercise}
+      />
+
       <CollapsibleSection
         title="Recordings"
         defaultExpanded={true}
@@ -1135,6 +1152,7 @@ function App() {
           onUpdateTraining={updateTraining}
           onDeleteTraining={deleteTraining}
           onStartTraining={startTraining}
+          onToggleFavorite={toggleFavoriteTraining}
           isPlayingExercise={isPlayingExercise}
           currentPlayingTrainingId={currentPlayingTrainingId}
           onStopTraining={stopExercise}

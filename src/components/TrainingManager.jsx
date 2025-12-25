@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './TrainingManager.css'
 
-function TrainingManager({ exercises, trainings, onCreateTraining, onUpdateTraining, onDeleteTraining, onStartTraining, isPlayingExercise, currentPlayingTrainingId, onStopTraining }) {
+function TrainingManager({ exercises, trainings, onCreateTraining, onUpdateTraining, onDeleteTraining, onStartTraining, onToggleFavorite, isPlayingExercise, currentPlayingTrainingId, onStopTraining }) {
   const [isCreating, setIsCreating] = useState(false)
   const [editingTrainingId, setEditingTrainingId] = useState(null)
   const [newTrainingName, setNewTrainingName] = useState('')
@@ -134,6 +134,13 @@ function TrainingManager({ exercises, trainings, onCreateTraining, onUpdateTrain
           </div>
         </div>
         <div className="training-actions">
+          <button
+            className={`btn-training-action btn-favorite ${training.isFavorite ? 'is-favorite' : ''}`}
+            onClick={() => onToggleFavorite(training.id)}
+            title={training.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {training.isFavorite ? '⭐' : '☆'}
+          </button>
           {currentPlayingTrainingId === training.id ? (
             <button
               className="btn-training-action btn-stop-training"
