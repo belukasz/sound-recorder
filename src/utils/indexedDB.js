@@ -1,11 +1,12 @@
 // IndexedDB utility for persisting recordings, phases, and exercises
 
 const DB_NAME = 'SoundRecorderDB'
-const DB_VERSION = 2
+const DB_VERSION = 3
 const RECORDINGS_STORE = 'recordings'
 const PHASES_STORE = 'phases'
 const EXERCISES_STORE = 'exercises'
 const TRAININGS_STORE = 'trainings'
+const TRAINING_HISTORY_STORE = 'trainingHistory'
 
 // Open database connection
 export const openDB = () => {
@@ -36,6 +37,11 @@ export const openDB = () => {
       // Create trainings store
       if (!db.objectStoreNames.contains(TRAININGS_STORE)) {
         db.createObjectStore(TRAININGS_STORE, { keyPath: 'id' })
+      }
+
+      // Create training history store
+      if (!db.objectStoreNames.contains(TRAINING_HISTORY_STORE)) {
+        db.createObjectStore(TRAINING_HISTORY_STORE, { keyPath: 'id' })
       }
     }
   })
@@ -206,6 +212,47 @@ export const deleteTraining = async (id) => {
   })
 }
 
+// Training History operations
+export const saveTrainingHistory = async (history) => {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([TRAINING_HISTORY_STORE], 'readwrite')
+    const store = transaction.objectStore(TRAINING_HISTORY_STORE)
+    const request = store.put(history)
+
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+export const getAllTrainingHistory = async () => {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([TRAINING_HISTORY_STORE], 'readonly')
+    const store = transaction.objectStore(TRAINING_HISTORY_STORE)
+    const request = store.getAll()
+
+    request.onsuccess = () => {
+      // Sort by date, most recent first
+      const history = request.result.sort((a, b) => b.completedAt - a.completedAt)
+      resolve(history)
+    }
+    request.onerror = () => reject(request.error)
+  })
+}
+
+export const deleteTrainingHistory = async (id) => {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([TRAINING_HISTORY_STORE], 'readwrite')
+    const store = transaction.objectStore(TRAINING_HISTORY_STORE)
+    const request = store.delete(id)
+
+    request.onsuccess = () => resolve()
+    request.onerror = () => reject(request.error)
+  })
+}
+
 // Export all data
 export const exportAllData = async () => {
   const recordings = await getAllRecordings()
@@ -280,12 +327,13 @@ export const importAllData = async (data) => {
 export const clearAllData = async () => {
   const db = await openDB()
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([RECORDINGS_STORE, PHASES_STORE, EXERCISES_STORE, TRAININGS_STORE], 'readwrite')
+    const transaction = db.transaction([RECORDINGS_STORE, PHASES_STORE, EXERCISES_STORE, TRAININGS_STORE, TRAINING_HISTORY_STORE], 'readwrite')
 
     transaction.objectStore(RECORDINGS_STORE).clear()
     transaction.objectStore(PHASES_STORE).clear()
     transaction.objectStore(EXERCISES_STORE).clear()
     transaction.objectStore(TRAININGS_STORE).clear()
+    transaction.objectStore(TRAINING_HISTORY_STORE).clear()
 
     transaction.oncomplete = () => resolve()
     transaction.onerror = () => reject(transaction.error)

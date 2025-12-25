@@ -8,6 +8,7 @@ import ExercisePlayer from './components/ExercisePlayer'
 import DataManager from './components/DataManager'
 import FavoriteExercises from './components/FavoriteExercises'
 import TrainingManager from './components/TrainingManager'
+import TrainingHistory from './components/TrainingHistory'
 import CollapsibleSection from './components/CollapsibleSection'
 import * as db from './utils/indexedDB'
 import './App.css'
@@ -22,6 +23,7 @@ function App() {
   const [phases, setPhases] = useState([])
   const [exercises, setExercises] = useState([])
   const [trainings, setTrainings] = useState([])
+  const [trainingHistory, setTrainingHistory] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [trainingStartTime, setTrainingStartTime] = useState(null)
 
@@ -44,17 +46,19 @@ function App() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [loadedRecordings, loadedPhases, loadedExercises, loadedTrainings] = await Promise.all([
+        const [loadedRecordings, loadedPhases, loadedExercises, loadedTrainings, loadedHistory] = await Promise.all([
           db.getAllRecordings(),
           db.getAllPhases(),
           db.getAllExercises(),
-          db.getAllTrainings()
+          db.getAllTrainings(),
+          db.getAllTrainingHistory()
         ])
 
         setRecordings(loadedRecordings)
         setPhases(loadedPhases)
         setExercises(loadedExercises)
         setTrainings(loadedTrainings)
+        setTrainingHistory(loadedHistory)
       } catch (error) {
         console.error('Error loading data:', error)
         setStatus({ message: 'Error loading saved data', type: 'error' })
@@ -285,6 +289,11 @@ function App() {
     setTrainings(prev => prev.filter(t => t.id !== trainingId))
   }
 
+  const deleteTrainingHistory = async (historyId) => {
+    await db.deleteTrainingHistory(historyId)
+    setTrainingHistory(prev => prev.filter(h => h.id !== historyId))
+  }
+
   const startTraining = async (trainingId) => {
     if (isPlayingExercise) {
       setStatus({ message: 'A training/exercise is already playing. Stop it first.', type: 'error' })
@@ -295,9 +304,10 @@ function App() {
     const training = trainings.find(t => t.id === trainingId)
     if (!training) return
 
+    const startTime = Date.now()
     setIsPlayingExercise(true)
     setCurrentPlayingTrainingId(trainingId)
-    setTrainingStartTime(Date.now())
+    setTrainingStartTime(startTime)
     exerciseStoppedRef.current = false
 
     // Execute exercises one by one
@@ -321,9 +331,23 @@ function App() {
 
     // Cleanup
     if (!exerciseStoppedRef.current) {
-      const totalTime = Math.floor((Date.now() - trainingStartTime) / 1000)
+      const totalTime = Math.floor((Date.now() - startTime) / 1000)
       setStatus({ message: `Training completed! Total time: ${Math.floor(totalTime / 60)}m ${totalTime % 60}s`, type: 'success' })
       setTimeout(() => setStatus({ message: '', type: '' }), 5000)
+
+      // Save to training history
+      const historyEntry = {
+        id: Date.now(),
+        trainingId: trainingId,
+        completedAt: Date.now(),
+        duration: totalTime,
+        exerciseCount: training.exerciseIds.length
+      }
+      await db.saveTrainingHistory(historyEntry)
+
+      // Reload training history
+      const updatedHistory = await db.getAllTrainingHistory()
+      setTrainingHistory(updatedHistory)
     }
 
     setIsPlayingExercise(false)
@@ -1114,6 +1138,22 @@ function App() {
           isPlayingExercise={isPlayingExercise}
           currentPlayingTrainingId={currentPlayingTrainingId}
           onStopTraining={stopExercise}
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Training History"
+        defaultExpanded={false}
+        summary={
+          trainingHistory.length > 0
+            ? `${trainingHistory.length} session${trainingHistory.length !== 1 ? 's' : ''} completed`
+            : 'No training sessions yet'
+        }
+      >
+        <TrainingHistory
+          trainingHistory={trainingHistory}
+          trainings={trainings}
+          onDeleteHistory={deleteTrainingHistory}
         />
       </CollapsibleSection>
 
