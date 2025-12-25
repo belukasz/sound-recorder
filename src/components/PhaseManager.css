@@ -158,7 +158,14 @@
     padding: 10px;
 }
 
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
 .btn-save-phase {
+    flex: 1;
     padding: 12px 24px;
     background-color: #4299e1;
     color: white;
@@ -168,13 +175,29 @@
     font-size: 1em;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin-top: 10px;
 }
 
 .btn-save-phase:hover {
     background-color: #3182ce;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+}
+
+.btn-cancel-edit {
+    padding: 12px 24px;
+    background-color: #718096;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-cancel-edit:hover {
+    background-color: #4a5568;
+    transform: translateY(-2px);
 }
 
 .phases-list {
@@ -245,6 +268,32 @@
     background-color: #805ad5;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(159, 122, 234, 0.4);
+}
+
+.btn-edit {
+    background-color: #4299e1;
+    color: white;
+}
+
+.btn-edit:hover:not(:disabled) {
+    background-color: #3182ce;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+}
+
+.btn-edit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-stop-phase {
+    background-color: #f56565;
+    color: white;
+}
+
+.btn-stop-phase:hover {
+    background-color: #e53e3e;
+    transform: translateY(-2px);
 }
 
 .btn-delete-phase {

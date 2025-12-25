@@ -1,10 +1,11 @@
 // IndexedDB utility for persisting recordings, phases, and exercises
 
 const DB_NAME = 'SoundRecorderDB'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const RECORDINGS_STORE = 'recordings'
 const PHASES_STORE = 'phases'
 const EXERCISES_STORE = 'exercises'
+const TRAININGS_STORE = 'trainings'
 
 // Open database connection
 export const openDB = () => {
@@ -30,6 +31,11 @@ export const openDB = () => {
       // Create exercises store
       if (!db.objectStoreNames.contains(EXERCISES_STORE)) {
         db.createObjectStore(EXERCISES_STORE, { keyPath: 'id' })
+      }
+
+      // Create trainings store
+      if (!db.objectStoreNames.contains(TRAININGS_STORE)) {
+        db.createObjectStore(TRAININGS_STORE, { keyPath: 'id' })
       }
     }
   })
@@ -163,11 +169,49 @@ export const deleteExercise = async (id) => {
   })
 }
 
+// Trainings operations
+export const saveTraining = async (training) => {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([TRAININGS_STORE], 'readwrite')
+    const store = transaction.objectStore(TRAININGS_STORE)
+    const request = store.put(training)
+
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+export const getAllTrainings = async () => {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([TRAININGS_STORE], 'readonly')
+    const store = transaction.objectStore(TRAININGS_STORE)
+    const request = store.getAll()
+
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+export const deleteTraining = async (id) => {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([TRAININGS_STORE], 'readwrite')
+    const store = transaction.objectStore(TRAININGS_STORE)
+    const request = store.delete(id)
+
+    request.onsuccess = () => resolve()
+    request.onerror = () => reject(request.error)
+  })
+}
+
 // Export all data
 export const exportAllData = async () => {
   const recordings = await getAllRecordings()
   const phases = await getAllPhases()
   const exercises = await getAllExercises()
+  const trainings = await getAllTrainings()
 
   // Convert blobs to base64 for export
   const recordingsWithBase64 = await Promise.all(
@@ -188,7 +232,8 @@ export const exportAllData = async () => {
     exportDate: new Date().toISOString(),
     recordings: recordingsWithBase64,
     phases,
-    exercises
+    exercises,
+    trainings
   }
 }
 
@@ -222,17 +267,25 @@ export const importAllData = async (data) => {
   for (const exercise of data.exercises) {
     await saveExercise(exercise)
   }
+
+  // Import trainings
+  if (data.trainings) {
+    for (const training of data.trainings) {
+      await saveTraining(training)
+    }
+  }
 }
 
 // Clear all data
 export const clearAllData = async () => {
   const db = await openDB()
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([RECORDINGS_STORE, PHASES_STORE, EXERCISES_STORE], 'readwrite')
+    const transaction = db.transaction([RECORDINGS_STORE, PHASES_STORE, EXERCISES_STORE, TRAININGS_STORE], 'readwrite')
 
     transaction.objectStore(RECORDINGS_STORE).clear()
     transaction.objectStore(PHASES_STORE).clear()
     transaction.objectStore(EXERCISES_STORE).clear()
+    transaction.objectStore(TRAININGS_STORE).clear()
 
     transaction.oncomplete = () => resolve()
     transaction.onerror = () => reject(transaction.error)

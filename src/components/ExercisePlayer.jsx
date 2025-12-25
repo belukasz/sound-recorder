@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import './ExercisePlayer.css'
 
 function ExercisePlayer({
@@ -8,10 +9,33 @@ function ExercisePlayer({
   currentPhaseIndex,
   totalPhases,
   status,
-  onStop
+  onStop,
+  trainingStartTime
 }) {
+  const [elapsedTime, setElapsedTime] = useState(0)
+
+  useEffect(() => {
+    if (!trainingStartTime) {
+      setElapsedTime(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - trainingStartTime) / 1000)
+      setElapsedTime(elapsed)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [trainingStartTime])
+
   if (!currentExercise) {
     return null
+  }
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   return (
@@ -19,7 +43,7 @@ function ExercisePlayer({
       <div className="exercise-player-header">
         <h3>Now Playing</h3>
         <button className="btn-stop-player" onClick={onStop}>
-          Stop Exercise
+          {trainingStartTime ? 'Stop Training' : 'Stop Exercise'}
         </button>
       </div>
 
@@ -50,6 +74,13 @@ function ExercisePlayer({
             <div className="player-status">
               <span className="status-indicator">🎵</span>
               <span className="status-text">{status}</span>
+            </div>
+          )}
+
+          {trainingStartTime && (
+            <div className="player-field training-timer">
+              <span className="player-label">Training Time:</span>
+              <span className="player-value player-time">{formatTime(elapsedTime)}</span>
             </div>
           )}
         </div>

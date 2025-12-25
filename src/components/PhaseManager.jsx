@@ -3,6 +3,7 @@ import './PhaseManager.css'
 
 function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpdatePhase, onStartPhase, isPlayingExercise, onStopExercise }) {
   const [isCreating, setIsCreating] = useState(false)
+  const [editingPhaseId, setEditingPhaseId] = useState(null)
   const [newPhaseName, setNewPhaseName] = useState('')
   const [newPhaseType, setNewPhaseType] = useState('random')
   const [newPhaseMinDelay, setNewPhaseMinDelay] = useState(1)
@@ -12,7 +13,30 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
   const [exactTimings, setExactTimings] = useState({}) // { recordingId: "1,2,3" }
   const [labelFilter, setLabelFilter] = useState('') // Filter by label
 
-  const handleCreatePhase = () => {
+  const handleStartEdit = (phase) => {
+    setEditingPhaseId(phase.id)
+    setNewPhaseName(phase.name)
+    setNewPhaseType(phase.type)
+    setNewPhaseMinDelay(phase.minDelay)
+    setNewPhaseMaxDelay(phase.maxDelay)
+    setSoundRepetitions(phase.soundRepetitions || 1)
+    setSelectedRecordings(phase.recordingIds)
+    setExactTimings(phase.exactTimings || {})
+    setIsCreating(false)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingPhaseId(null)
+    setNewPhaseName('')
+    setNewPhaseType('random')
+    setNewPhaseMinDelay(1)
+    setNewPhaseMaxDelay(3)
+    setSoundRepetitions(1)
+    setSelectedRecordings([])
+    setExactTimings({})
+  }
+
+  const handleSavePhase = () => {
     if (!newPhaseName.trim()) {
       alert('Please enter a phase name')
       return
@@ -40,8 +64,7 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
       }
     }
 
-    onCreatePhase({
-      id: Date.now(),
+    const phaseData = {
       name: newPhaseName.trim(),
       type: newPhaseType,
       minDelay: newPhaseMinDelay,
@@ -49,7 +72,18 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
       soundRepetitions: soundRepetitions,
       recordingIds: selectedRecordings,
       exactTimings: newPhaseType === 'exactTiming' ? exactTimings : undefined
-    })
+    }
+
+    if (editingPhaseId) {
+      onUpdatePhase(editingPhaseId, phaseData)
+      setEditingPhaseId(null)
+    } else {
+      onCreatePhase({
+        id: Date.now(),
+        ...phaseData
+      })
+      setIsCreating(false)
+    }
 
     // Reset form
     setNewPhaseName('')
@@ -59,7 +93,6 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
     setSoundRepetitions(1)
     setSelectedRecordings([])
     setExactTimings({})
-    setIsCreating(false)
   }
 
   const toggleRecordingSelection = (recordingId) => {
@@ -101,15 +134,29 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
       <div className="phase-header">
         <button
           className="btn-create-phase"
-          onClick={() => setIsCreating(!isCreating)}
+          onClick={() => {
+            if (isCreating) {
+              setIsCreating(false)
+              setNewPhaseName('')
+              setNewPhaseType('random')
+              setNewPhaseMinDelay(1)
+              setNewPhaseMaxDelay(3)
+              setSoundRepetitions(1)
+              setSelectedRecordings([])
+              setExactTimings({})
+            } else {
+              setIsCreating(true)
+              setEditingPhaseId(null)
+            }
+          }}
         >
           {isCreating ? 'Cancel' : '+ Create Phase'}
         </button>
       </div>
 
-      {isCreating && (
+      {(isCreating || editingPhaseId) && (
         <div className="phase-creator">
-          <h3>Create New Phase</h3>
+          <h3>{editingPhaseId ? 'Edit Phase' : 'Create New Phase'}</h3>
 
           <div className="phase-form">
             <div className="form-group">
@@ -266,9 +313,16 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
               </div>
             </div>
 
-            <button className="btn-save-phase" onClick={handleCreatePhase}>
-              Create Phase
-            </button>
+            <div className="form-actions">
+              <button className="btn-save-phase" onClick={handleSavePhase}>
+                {editingPhaseId ? 'Save Changes' : 'Create Phase'}
+              </button>
+              {editingPhaseId && (
+                <button className="btn-cancel-edit" onClick={handleCancelEdit}>
+                  Cancel
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -312,6 +366,13 @@ function PhaseManager({ recordings, phases, onCreatePhase, onDeletePhase, onUpda
                     Start
                   </button>
                 )}
+                <button
+                  className="btn-phase-action btn-edit"
+                  onClick={() => handleStartEdit(phase)}
+                  disabled={isPlayingExercise}
+                >
+                  Edit
+                </button>
                 <button
                   className="btn-phase-action btn-delete-phase"
                   onClick={() => onDeletePhase(phase.id)}

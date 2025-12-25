@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import './ExerciseManager.css'
 
-function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onDeleteExercise, onStartExercise, onToggleFavorite, isPlayingExercise, currentPlayingExerciseId, onStopExercise }) {
+function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onUpdateExercise, onDeleteExercise, onStartExercise, onToggleFavorite, isPlayingExercise, currentPlayingExerciseId, onStopExercise }) {
   const [isCreating, setIsCreating] = useState(false)
+  const [editingExerciseId, setEditingExerciseId] = useState(null)
   const [exerciseType, setExerciseType] = useState('phased')
   const [newExerciseName, setNewExerciseName] = useState('')
   const [selectedPhases, setSelectedPhases] = useState([])
@@ -13,11 +14,42 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onDe
   const [endRecordingId, setEndRecordingId] = useState(null)
   const [recordingLabelFilter, setRecordingLabelFilter] = useState('')
 
-  const handleCreateExercise = () => {
+  const handleStartEdit = (exercise) => {
+    setEditingExerciseId(exercise.id)
+    setExerciseType(exercise.type)
+    setNewExerciseName(exercise.name)
+
+    if (exercise.type === 'phased') {
+      setSelectedPhases(exercise.phaseIds || [])
+      setRepetitions(exercise.repetitions || 1)
+    } else {
+      setDuration(exercise.duration || 60)
+      setStartRecordingId(exercise.startRecordingId || null)
+      setEndRecordingId(exercise.endRecordingId || null)
+    }
+
+    setIsCreating(false)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingExerciseId(null)
+    setExerciseType('phased')
+    setNewExerciseName('')
+    setSelectedPhases([])
+    setRepetitions(1)
+    setDuration(60)
+    setStartRecordingId(null)
+    setEndRecordingId(null)
+    setRecordingLabelFilter('')
+  }
+
+  const handleSaveExercise = () => {
     if (!newExerciseName.trim()) {
       alert('Please enter an exercise name')
       return
     }
+
+    let exerciseData
 
     if (exerciseType === 'phased') {
       if (selectedPhases.length === 0) {
@@ -30,13 +62,12 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onDe
         return
       }
 
-      onCreateExercise({
-        id: Date.now(),
+      exerciseData = {
         type: 'phased',
         name: newExerciseName.trim(),
         phaseIds: selectedPhases,
         repetitions: repetitions
-      })
+      }
     } else {
       // Timed exercise
       if (duration < 1) {
@@ -44,14 +75,24 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onDe
         return
       }
 
-      onCreateExercise({
-        id: Date.now(),
+      exerciseData = {
         type: 'timed',
         name: newExerciseName.trim(),
         duration: duration,
         startRecordingId: startRecordingId,
         endRecordingId: endRecordingId
+      }
+    }
+
+    if (editingExerciseId) {
+      onUpdateExercise(editingExerciseId, exerciseData)
+      setEditingExerciseId(null)
+    } else {
+      onCreateExercise({
+        id: Date.now(),
+        ...exerciseData
       })
+      setIsCreating(false)
     }
 
     // Reset form
@@ -63,7 +104,6 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onDe
     setStartRecordingId(null)
     setEndRecordingId(null)
     setRecordingLabelFilter('')
-    setIsCreating(false)
   }
 
   const togglePhaseSelection = (phaseId) => {
@@ -107,7 +147,7 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onDe
     ? recordings.filter(r => (r.labels || []).includes(recordingLabelFilter))
     : recordings
 
-  const ExerciseItem = ({ exercise, getPhaseName, onStartExercise, onToggleFavorite, onDeleteExercise, isPlayingExercise, currentPlayingExerciseId, onStopExercise }) => (
+  const ExerciseItem = ({ exercise, getPhaseName, onStartExercise, onToggleFavorite, onDeleteExercise, onStartEdit, isPlayingExercise, currentPlayingExerciseId, onStopExercise }) => (
     <div key={exercise.id} className="exercise-item">
       <div className="exercise-info">
         <h4>{exercise.name}</h4>
@@ -164,6 +204,13 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onDe
           </button>
         )}
         <button
+          className="btn-exercise-action btn-edit"
+          onClick={() => onStartEdit(exercise)}
+          disabled={isPlayingExercise}
+        >
+          Edit
+        </button>
+        <button
           className="btn-exercise-action btn-delete-exercise"
           onClick={() => onDeleteExercise(exercise.id)}
           disabled={isPlayingExercise}
@@ -179,15 +226,30 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onDe
       <div className="exercise-header">
         <button
           className="btn-create-exercise"
-          onClick={() => setIsCreating(!isCreating)}
+          onClick={() => {
+            if (isCreating) {
+              setIsCreating(false)
+              setExerciseType('phased')
+              setNewExerciseName('')
+              setSelectedPhases([])
+              setRepetitions(1)
+              setDuration(60)
+              setStartRecordingId(null)
+              setEndRecordingId(null)
+              setRecordingLabelFilter('')
+            } else {
+              setIsCreating(true)
+              setEditingExerciseId(null)
+            }
+          }}
         >
           {isCreating ? 'Cancel' : '+ Create Exercise'}
         </button>
       </div>
 
-      {isCreating && (
+      {(isCreating || editingExerciseId) && (
         <div className="exercise-creator">
-          <h3>Create New Exercise</h3>
+          <h3>{editingExerciseId ? 'Edit Exercise' : 'Create New Exercise'}</h3>
 
           <div className="exercise-form">
             <div className="form-group">
@@ -347,9 +409,16 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onDe
               </>
             )}
 
-            <button className="btn-save-exercise" onClick={handleCreateExercise}>
-              Create Exercise
-            </button>
+            <div className="form-actions">
+              <button className="btn-save-exercise" onClick={handleSaveExercise}>
+                {editingExerciseId ? 'Save Changes' : 'Create Exercise'}
+              </button>
+              {editingExerciseId && (
+                <button className="btn-cancel-edit" onClick={handleCancelEdit}>
+                  Cancel
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -367,6 +436,7 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onDe
               onStartExercise={onStartExercise}
               onToggleFavorite={onToggleFavorite}
               onDeleteExercise={onDeleteExercise}
+              onStartEdit={handleStartEdit}
               isPlayingExercise={isPlayingExercise}
               currentPlayingExerciseId={currentPlayingExerciseId}
               onStopExercise={onStopExercise}

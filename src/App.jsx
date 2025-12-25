@@ -7,6 +7,7 @@ import ExerciseManager from './components/ExerciseManager'
 import ExercisePlayer from './components/ExercisePlayer'
 import DataManager from './components/DataManager'
 import FavoriteExercises from './components/FavoriteExercises'
+import TrainingManager from './components/TrainingManager'
 import CollapsibleSection from './components/CollapsibleSection'
 import * as db from './utils/indexedDB'
 import './App.css'
@@ -17,9 +18,12 @@ function App() {
   const [status, setStatus] = useState({ message: '', type: '' })
   const [isPlayingExercise, setIsPlayingExercise] = useState(false)
   const [currentPlayingExerciseId, setCurrentPlayingExerciseId] = useState(null)
+  const [currentPlayingTrainingId, setCurrentPlayingTrainingId] = useState(null)
   const [phases, setPhases] = useState([])
   const [exercises, setExercises] = useState([])
+  const [trainings, setTrainings] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [trainingStartTime, setTrainingStartTime] = useState(null)
 
   // Exercise player state
   const [currentExerciseName, setCurrentExerciseName] = useState('')
@@ -40,15 +44,17 @@ function App() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [loadedRecordings, loadedPhases, loadedExercises] = await Promise.all([
+        const [loadedRecordings, loadedPhases, loadedExercises, loadedTrainings] = await Promise.all([
           db.getAllRecordings(),
           db.getAllPhases(),
-          db.getAllExercises()
+          db.getAllExercises(),
+          db.getAllTrainings()
         ])
 
         setRecordings(loadedRecordings)
         setPhases(loadedPhases)
         setExercises(loadedExercises)
+        setTrainings(loadedTrainings)
       } catch (error) {
         console.error('Error loading data:', error)
         setStatus({ message: 'Error loading saved data', type: 'error' })
@@ -80,13 +86,18 @@ function App() {
         for (const exercise of exercises) {
           await db.saveExercise(exercise)
         }
+
+        // Save all trainings
+        for (const training of trainings) {
+          await db.saveTraining(training)
+        }
       } catch (error) {
         console.error('Error auto-saving data:', error)
       }
     }
 
     saveData()
-  }, [recordings, phases, exercises, isLoading])
+  }, [recordings, phases, exercises, trainings, isLoading])
 
   const getSupportedMimeType = () => {
     if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
@@ -200,6 +211,8 @@ function App() {
     // Immediately clean up state - the async function will break out at next checkpoint
     setIsPlayingExercise(false)
     setCurrentPlayingExerciseId(null)
+    setCurrentPlayingTrainingId(null)
+    setTrainingStartTime(null)
     setCurrentExerciseName('')
     setCurrentPhaseName('')
     setCurrentRep(0)
@@ -207,7 +220,7 @@ function App() {
     setCurrentPhaseIndex(0)
     setTotalPhases(0)
     setPlayerStatus('')
-    setStatus({ message: 'Exercise stopped', type: '' })
+    setStatus({ message: currentPlayingTrainingId ? 'Training stopped' : 'Exercise stopped', type: '' })
     setTimeout(() => setStatus({ message: '', type: '' }), 2000)
   }
 
@@ -240,6 +253,12 @@ function App() {
     setExercises(prev => [...prev, exercise])
   }
 
+  const updateExercise = (exerciseId, updates) => {
+    setExercises(prev => prev.map(e =>
+      e.id === exerciseId ? { ...e, ...updates } : e
+    ))
+  }
+
   const deleteExercise = async (exerciseId) => {
     await db.deleteExercise(exerciseId)
     setExercises(prev => prev.filter(e => e.id !== exerciseId))
@@ -249,6 +268,251 @@ function App() {
     setExercises(prev => prev.map(e =>
       e.id === exerciseId ? { ...e, isFavorite: !e.isFavorite } : e
     ))
+  }
+
+  const createTraining = (training) => {
+    setTrainings(prev => [...prev, training])
+  }
+
+  const updateTraining = (trainingId, updates) => {
+    setTrainings(prev => prev.map(t =>
+      t.id === trainingId ? { ...t, ...updates } : t
+    ))
+  }
+
+  const deleteTraining = async (trainingId) => {
+    await db.deleteTraining(trainingId)
+    setTrainings(prev => prev.filter(t => t.id !== trainingId))
+  }
+
+  const startTraining = async (trainingId) => {
+    if (isPlayingExercise) {
+      setStatus({ message: 'A training/exercise is already playing. Stop it first.', type: 'error' })
+      setTimeout(() => setStatus({ message: '', type: '' }), 3000)
+      return
+    }
+
+    const training = trainings.find(t => t.id === trainingId)
+    if (!training) return
+
+    setIsPlayingExercise(true)
+    setCurrentPlayingTrainingId(trainingId)
+    setTrainingStartTime(Date.now())
+    exerciseStoppedRef.current = false
+
+    // Execute exercises one by one
+    for (let i = 0; i < training.exerciseIds.length; i++) {
+      if (exerciseStoppedRef.current) break
+
+      const exerciseId = training.exerciseIds[i]
+      const exercise = exercises.find(e => e.id === exerciseId)
+
+      if (!exercise) continue
+
+      // Run the exercise
+      setCurrentPlayingExerciseId(exerciseId)
+      setCurrentExerciseName(`${training.name} - ${exercise.name} (${i + 1}/${training.exerciseIds.length})`)
+
+      // Execute based on exercise type (reusing existing startExercise logic but inline)
+      await executeExercise(exercise, i + 1, training.exerciseIds.length)
+
+      if (exerciseStoppedRef.current) break
+    }
+
+    // Cleanup
+    if (!exerciseStoppedRef.current) {
+      const totalTime = Math.floor((Date.now() - trainingStartTime) / 1000)
+      setStatus({ message: `Training completed! Total time: ${Math.floor(totalTime / 60)}m ${totalTime % 60}s`, type: 'success' })
+      setTimeout(() => setStatus({ message: '', type: '' }), 5000)
+    }
+
+    setIsPlayingExercise(false)
+    setCurrentPlayingExerciseId(null)
+    setCurrentPlayingTrainingId(null)
+    setTrainingStartTime(null)
+    setCurrentExerciseName('')
+    setCurrentPhaseName('')
+    setCurrentRep(0)
+    setTotalReps(0)
+    setCurrentPhaseIndex(0)
+    setTotalPhases(0)
+    setPlayerStatus('')
+  }
+
+  // Helper function to execute a single exercise during training
+  const executeExercise = async (exercise, exerciseNum, totalExercises) => {
+    if (exercise.type === 'timed') {
+      // Timed exercise execution
+      setTotalReps(1)
+      setCurrentRep(1)
+      setTotalPhases(1)
+      setCurrentPhaseIndex(1)
+
+      // Play start recording if configured
+      if (exercise.startRecordingId) {
+        const startRecording = recordings.find(r => r.id === exercise.startRecordingId)
+        if (startRecording) {
+          setPlayerStatus('Playing start sound...')
+          await new Promise((resolve) => {
+            const audio = new Audio(startRecording.url)
+            currentAudioRef.current = audio
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+            audio.play()
+          })
+        }
+      }
+
+      if (exerciseStoppedRef.current) return
+
+      // Countdown timer
+      const endTime = Date.now() + (exercise.duration * 1000)
+      while (Date.now() < endTime && !exerciseStoppedRef.current) {
+        const remaining = Math.ceil((endTime - Date.now()) / 1000)
+        setPlayerStatus(`${remaining}s remaining`)
+        setCurrentPhaseName(`${remaining}s`)
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+
+      if (exerciseStoppedRef.current) return
+
+      // Play end recording if configured
+      if (exercise.endRecordingId) {
+        const endRecording = recordings.find(r => r.id === exercise.endRecordingId)
+        if (endRecording) {
+          setPlayerStatus('Playing end sound...')
+          await new Promise((resolve) => {
+            const audio = new Audio(endRecording.url)
+            currentAudioRef.current = audio
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+            audio.play()
+          })
+        }
+      }
+    } else {
+      // Phased exercise execution
+      setTotalReps(exercise.repetitions || 1)
+
+      const exercisePhases = exercise.phaseIds
+        .map(phaseId => phases.find(p => p.id === phaseId))
+        .filter(Boolean)
+
+      if (exercisePhases.length === 0) return
+
+      const totalRepetitions = exercise.repetitions || 1
+      setTotalPhases(exercisePhases.length)
+
+      // Repeat the entire exercise
+      for (let rep = 0; rep < totalRepetitions; rep++) {
+        if (exerciseStoppedRef.current) break
+
+        setCurrentRep(rep + 1)
+
+        // Run through each phase sequentially
+        for (let phaseIndex = 0; phaseIndex < exercisePhases.length; phaseIndex++) {
+          if (exerciseStoppedRef.current) break
+
+          const phase = exercisePhases[phaseIndex]
+          setCurrentPhaseName(phase.name)
+          setCurrentPhaseIndex(phaseIndex + 1)
+
+          // Get recordings for this phase
+          const phaseRecordings = phase.recordingIds
+            .map(id => recordings.find(r => r.id === id))
+            .filter(Boolean)
+
+          if (phaseRecordings.length === 0) continue
+
+          if (phase.type === 'exactTiming') {
+            // Exact Timing: Play ALL recordings with custom timings
+            for (let i = 0; i < phaseRecordings.length; i++) {
+              if (exerciseStoppedRef.current) break
+
+              const selectedRecording = phaseRecordings[i]
+              const delay = getExactTiming(phase, selectedRecording.id) * 1000
+
+              const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
+              setPlayerStatus(waitMessage)
+              await new Promise(resolve => setTimeout(resolve, delay))
+
+              if (exerciseStoppedRef.current) break
+
+              const playMessage = `Playing ${selectedRecording.name}`
+              setPlayerStatus(playMessage)
+
+              await new Promise((resolve) => {
+                const audio = new Audio(selectedRecording.url)
+                currentAudioRef.current = audio
+                audio.onended = () => resolve()
+                audio.onerror = () => resolve()
+                audio.play()
+              })
+            }
+          } else if (phase.type === 'roundRobin') {
+            // Round Robin: Play ALL recordings in sequence with repetitions
+            const repsPerSound = phase.soundRepetitions || 1
+
+            for (let i = 0; i < phaseRecordings.length; i++) {
+              if (exerciseStoppedRef.current) break
+
+              const selectedRecording = phaseRecordings[i]
+
+              for (let soundRep = 0; soundRep < repsPerSound; soundRep++) {
+                if (exerciseStoppedRef.current) break
+
+                const min = Math.min(phase.minDelay, phase.maxDelay)
+                const max = Math.max(phase.minDelay, phase.maxDelay)
+                const delay = (Math.random() * (max - min) + min) * 1000
+
+                const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
+                setPlayerStatus(waitMessage)
+                await new Promise(resolve => setTimeout(resolve, delay))
+
+                if (exerciseStoppedRef.current) break
+
+                const playMessage = `Playing ${selectedRecording.name}`
+                setPlayerStatus(playMessage)
+
+                await new Promise((resolve) => {
+                  const audio = new Audio(selectedRecording.url)
+                  currentAudioRef.current = audio
+                  audio.onended = () => resolve()
+                  audio.onerror = () => resolve()
+                  audio.play()
+                })
+              }
+            }
+          } else {
+            // Random Timing: Pick ONE random recording
+            const min = Math.min(phase.minDelay, phase.maxDelay)
+            const max = Math.max(phase.minDelay, phase.maxDelay)
+            const delay = (Math.random() * (max - min) + min) * 1000
+
+            const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
+            setPlayerStatus(waitMessage)
+            await new Promise(resolve => setTimeout(resolve, delay))
+
+            if (exerciseStoppedRef.current) break
+
+            const selectedRecording = phaseRecordings[
+              Math.floor(Math.random() * phaseRecordings.length)
+            ]
+
+            const playMessage = `Playing ${selectedRecording.name}`
+            setPlayerStatus(playMessage)
+
+            await new Promise((resolve) => {
+              const audio = new Audio(selectedRecording.url)
+              currentAudioRef.current = audio
+              audio.onended = () => resolve()
+              audio.onerror = () => resolve()
+              audio.play()
+            })
+          }
+        }
+      }
+    }
   }
 
   const startExercise = async (exerciseId) => {
@@ -752,6 +1016,7 @@ function App() {
           totalPhases={totalPhases}
           status={playerStatus}
           onStop={stopExercise}
+          trainingStartTime={trainingStartTime}
         />
       )}
 
@@ -820,12 +1085,35 @@ function App() {
           exercises={exercises}
           recordings={recordings}
           onCreateExercise={createExercise}
+          onUpdateExercise={updateExercise}
           onDeleteExercise={deleteExercise}
           onStartExercise={startExercise}
           onToggleFavorite={toggleFavorite}
           isPlayingExercise={isPlayingExercise}
           currentPlayingExerciseId={currentPlayingExerciseId}
           onStopExercise={stopExercise}
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Trainings"
+        defaultExpanded={false}
+        summary={
+          trainings.length > 0
+            ? `${trainings.length} training${trainings.length !== 1 ? 's' : ''} • ${trainings.reduce((sum, t) => sum + (t.exerciseIds?.length || 0), 0)} total exercises`
+            : 'No trainings yet'
+        }
+      >
+        <TrainingManager
+          exercises={exercises}
+          trainings={trainings}
+          onCreateTraining={createTraining}
+          onUpdateTraining={updateTraining}
+          onDeleteTraining={deleteTraining}
+          onStartTraining={startTraining}
+          isPlayingExercise={isPlayingExercise}
+          currentPlayingTrainingId={currentPlayingTrainingId}
+          onStopTraining={stopExercise}
         />
       </CollapsibleSection>
 
