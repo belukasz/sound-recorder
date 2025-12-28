@@ -34,7 +34,14 @@
   font-weight: 600;
 }
 
-.btn-stop-player {
+.player-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-stop-player,
+.btn-pause-player,
+.btn-resume-player {
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 2px solid white;
@@ -48,6 +55,30 @@
   min-width: 140px;
 }
 
+.btn-pause-player {
+  background: rgba(255, 193, 7, 0.3);
+  border-color: #ffc107;
+}
+
+.btn-pause-player:hover {
+  background: #ffc107;
+  color: #764ba2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-resume-player {
+  background: rgba(76, 175, 80, 0.3);
+  border-color: #4caf50;
+}
+
+.btn-resume-player:hover {
+  background: #4caf50;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
 .btn-stop-player:hover {
   background: white;
   color: #667eea;
@@ -55,7 +86,9 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.btn-stop-player:active {
+.btn-stop-player:active,
+.btn-pause-player:active,
+.btn-resume-player:active {
   transform: translateY(0);
 }
 
@@ -138,7 +171,14 @@
     text-align: center;
   }
 
-  .btn-stop-player {
+  .player-controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-stop-player,
+  .btn-pause-player,
+  .btn-resume-player {
     padding: 18px 24px;
     font-size: 1.2rem;
     min-height: 60px;

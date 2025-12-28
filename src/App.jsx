@@ -36,12 +36,17 @@ function App() {
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0)
   const [totalPhases, setTotalPhases] = useState(0)
   const [playerStatus, setPlayerStatus] = useState('')
+  const [isPaused, setIsPaused] = useState(false)
 
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const streamRef = useRef(null)
   const currentAudioRef = useRef(null)
   const exerciseStoppedRef = useRef(false)
+  const pausedRef = useRef(false)
+  const pauseResolveRef = useRef(null)
+  const pauseStartTimeRef = useRef(null)
+  const totalPausedTimeRef = useRef(0)
 
   // Load data from IndexedDB on mount
   useEffect(() => {
@@ -208,10 +213,16 @@ function App() {
 
   const stopExercise = () => {
     exerciseStoppedRef.current = true
+    pausedRef.current = false
     if (currentAudioRef.current) {
       currentAudioRef.current.pause()
       currentAudioRef.current.currentTime = 0
       currentAudioRef.current = null
+    }
+    // Resume if paused (to unblock any waiting promises)
+    if (pauseResolveRef.current) {
+      pauseResolveRef.current()
+      pauseResolveRef.current = null
     }
     // Immediately clean up state - the async function will break out at next checkpoint
     setIsPlayingExercise(false)
@@ -225,8 +236,73 @@ function App() {
     setCurrentPhaseIndex(0)
     setTotalPhases(0)
     setPlayerStatus('')
+    setIsPaused(false)
+    pauseStartTimeRef.current = null
+    totalPausedTimeRef.current = 0
     setStatus({ message: currentPlayingTrainingId ? 'Training stopped' : 'Exercise stopped', type: '' })
     setTimeout(() => setStatus({ message: '', type: '' }), 2000)
+  }
+
+  const pauseExercise = () => {
+    if (!isPlayingExercise || isPaused) return
+
+    pausedRef.current = true
+    setIsPaused(true)
+    pauseStartTimeRef.current = Date.now()
+
+    // Pause any currently playing audio
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause()
+    }
+  }
+
+  const resumeExercise = () => {
+    if (!isPlayingExercise || !isPaused) return
+
+    pausedRef.current = false
+    setIsPaused(false)
+
+    // Track total paused time
+    if (pauseStartTimeRef.current) {
+      totalPausedTimeRef.current += Date.now() - pauseStartTimeRef.current
+      pauseStartTimeRef.current = null
+    }
+
+    // Resume audio if there was any playing
+    if (currentAudioRef.current && currentAudioRef.current.paused) {
+      currentAudioRef.current.play()
+    }
+
+    // Resolve the pause promise to continue execution
+    if (pauseResolveRef.current) {
+      pauseResolveRef.current()
+      pauseResolveRef.current = null
+    }
+  }
+
+  // Helper function to check for pause and wait if paused
+  const checkPause = async () => {
+    if (pausedRef.current) {
+      await new Promise(resolve => {
+        pauseResolveRef.current = resolve
+      })
+    }
+  }
+
+  // Helper function for pauseable delay
+  const pauseableDelay = async (ms) => {
+    const startTime = Date.now()
+    const endTime = startTime + ms
+
+    while (Date.now() < endTime && !exerciseStoppedRef.current) {
+      await checkPause()
+      if (exerciseStoppedRef.current) break
+
+      const remaining = endTime - Date.now()
+      if (remaining > 0) {
+        await new Promise(resolve => setTimeout(resolve, Math.min(100, remaining)))
+      }
+    }
   }
 
   // Helper function to get timing for a recording in exact timing mode
@@ -316,6 +392,10 @@ function App() {
     setCurrentPlayingTrainingId(trainingId)
     setTrainingStartTime(startTime)
     exerciseStoppedRef.current = false
+    pausedRef.current = false
+    setIsPaused(false)
+    totalPausedTimeRef.current = 0
+    pauseStartTimeRef.current = null
 
     // Execute exercises one by one
     for (let i = 0; i < training.exerciseIds.length; i++) {
@@ -384,6 +464,7 @@ function App() {
         const startRecording = recordings.find(r => r.id === exercise.startRecordingId)
         if (startRecording) {
           setPlayerStatus('Playing start sound...')
+          await checkPause()
           await new Promise((resolve) => {
             const audio = new Audio(startRecording.url)
             currentAudioRef.current = audio
@@ -397,9 +478,16 @@ function App() {
       if (exerciseStoppedRef.current) return
 
       // Countdown timer
-      const endTime = Date.now() + (exercise.duration * 1000)
-      while (Date.now() < endTime && !exerciseStoppedRef.current) {
-        const remaining = Math.ceil((endTime - Date.now()) / 1000)
+      const durationMs = exercise.duration * 1000
+      const startCountdown = Date.now()
+      const endTime = startCountdown + durationMs
+
+      while (Date.now() < endTime + totalPausedTimeRef.current && !exerciseStoppedRef.current) {
+        await checkPause()
+        if (exerciseStoppedRef.current) break
+
+        const elapsed = Date.now() - startCountdown - totalPausedTimeRef.current
+        const remaining = Math.max(0, Math.ceil((durationMs - elapsed) / 1000))
         setPlayerStatus(`${remaining}s remaining`)
         setCurrentPhaseName(`${remaining}s`)
         await new Promise(resolve => setTimeout(resolve, 100))
@@ -412,6 +500,7 @@ function App() {
         const endRecording = recordings.find(r => r.id === exercise.endRecordingId)
         if (endRecording) {
           setPlayerStatus('Playing end sound...')
+          await checkPause()
           await new Promise((resolve) => {
             const audio = new Audio(endRecording.url)
             currentAudioRef.current = audio
@@ -439,6 +528,7 @@ function App() {
         const startRecording = recordings.find(r => r.id === exercise.startRecordingId)
         if (startRecording) {
           setPlayerStatus('Playing start sound...')
+          await checkPause()
           await new Promise((resolve) => {
             const audio = new Audio(startRecording.url)
             currentAudioRef.current = audio
@@ -482,13 +572,14 @@ function App() {
 
               const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
               setPlayerStatus(waitMessage)
-              await new Promise(resolve => setTimeout(resolve, delay))
+              await pauseableDelay(delay)
 
               if (exerciseStoppedRef.current) break
 
               const playMessage = `Playing ${selectedRecording.name}`
               setPlayerStatus(playMessage)
 
+              await checkPause()
               await new Promise((resolve) => {
                 const audio = new Audio(selectedRecording.url)
                 currentAudioRef.current = audio
@@ -515,13 +606,14 @@ function App() {
 
                 const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
                 setPlayerStatus(waitMessage)
-                await new Promise(resolve => setTimeout(resolve, delay))
+                await pauseableDelay(delay)
 
                 if (exerciseStoppedRef.current) break
 
                 const playMessage = `Playing ${selectedRecording.name}`
                 setPlayerStatus(playMessage)
 
+                await checkPause()
                 await new Promise((resolve) => {
                   const audio = new Audio(selectedRecording.url)
                   currentAudioRef.current = audio
@@ -539,7 +631,7 @@ function App() {
 
             const waitMessage = `Waiting ${(delay / 1000).toFixed(1)}s...`
             setPlayerStatus(waitMessage)
-            await new Promise(resolve => setTimeout(resolve, delay))
+            await pauseableDelay(delay)
 
             if (exerciseStoppedRef.current) break
 
@@ -550,6 +642,7 @@ function App() {
             const playMessage = `Playing ${selectedRecording.name}`
             setPlayerStatus(playMessage)
 
+            await checkPause()
             await new Promise((resolve) => {
               const audio = new Audio(selectedRecording.url)
               currentAudioRef.current = audio
@@ -568,6 +661,7 @@ function App() {
         const endRecording = recordings.find(r => r.id === exercise.endRecordingId)
         if (endRecording) {
           setPlayerStatus('Playing end sound...')
+          await checkPause()
           await new Promise((resolve) => {
             const audio = new Audio(endRecording.url)
             currentAudioRef.current = audio
@@ -594,6 +688,10 @@ function App() {
     setIsPlayingExercise(true)
     setCurrentPlayingExerciseId(exerciseId)
     exerciseStoppedRef.current = false
+    pausedRef.current = false
+    setIsPaused(false)
+    totalPausedTimeRef.current = 0
+    pauseStartTimeRef.current = null
     setStatus({ message: `Starting exercise: ${exercise.name}`, type: 'recording' })
 
     // Handle timed exercise
@@ -1082,6 +1180,9 @@ function App() {
           status={playerStatus}
           onStop={stopExercise}
           trainingStartTime={trainingStartTime}
+          isPaused={isPaused}
+          onPause={pauseExercise}
+          onResume={resumeExercise}
         />
       )}
 

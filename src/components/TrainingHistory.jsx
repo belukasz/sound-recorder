@@ -6,9 +6,7 @@ function TrainingHistory({ trainingHistory, trainings, onDeleteHistory }) {
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: 'numeric'
     })
   }
 
@@ -26,36 +24,88 @@ function TrainingHistory({ trainingHistory, trainings, onDeleteHistory }) {
     return training ? training.name : 'Deleted Training'
   }
 
+  const getDateKey = (timestamp) => {
+    const date = new Date(timestamp)
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
+  // Group history entries by date and training
+  const groupedHistory = trainingHistory.reduce((acc, entry) => {
+    const dateKey = getDateKey(entry.completedAt)
+    const trainingName = getTrainingName(entry.trainingId)
+    const key = `${dateKey}_${entry.trainingId}`
+
+    if (!acc[key]) {
+      acc[key] = {
+        date: dateKey,
+        trainingId: entry.trainingId,
+        trainingName: trainingName,
+        count: 0,
+        totalDuration: 0,
+        exerciseCount: entry.exerciseCount || 0,
+        entries: []
+      }
+    }
+
+    acc[key].count += 1
+    acc[key].totalDuration += entry.duration
+    acc[key].entries.push(entry)
+
+    return acc
+  }, {})
+
+  // Convert to array and sort by date (most recent first)
+  const groupedArray = Object.values(groupedHistory).sort((a, b) => {
+    const dateA = new Date(a.entries[0].completedAt)
+    const dateB = new Date(b.entries[0].completedAt)
+    return dateB - dateA
+  })
+
   return (
     <div className="training-history">
-      <div className="history-list">
-        {trainingHistory.length === 0 ? (
-          <p className="no-history">No training sessions completed yet. Start a training to build your history!</p>
-        ) : (
-          trainingHistory.map(entry => (
-            <div key={entry.id} className="history-item">
-              <div className="history-info">
-                <h4>{getTrainingName(entry.trainingId)}</h4>
-                <div className="history-details">
-                  <span className="history-stat">📅 {formatDate(entry.completedAt)}</span>
-                  <span className="history-stat">⏱️ {formatDuration(entry.duration)}</span>
-                  {entry.exerciseCount && (
-                    <span className="history-stat">🏋️ {entry.exerciseCount} exercises</span>
-                  )}
-                </div>
-              </div>
-              <div className="history-actions">
-                <button
-                  className="btn-history-action btn-delete-history"
-                  onClick={() => onDeleteHistory(entry.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      {trainingHistory.length === 0 ? (
+        <p className="no-history">No training sessions completed yet. Start a training to build your history!</p>
+      ) : (
+        <table className="history-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Training</th>
+              <th>Count</th>
+              <th>Total Duration</th>
+              <th>Exercises</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groupedArray.map(group => (
+              <tr key={`${group.date}_${group.trainingId}`}>
+                <td>{group.date}</td>
+                <td>{group.trainingName}</td>
+                <td>{group.count}x</td>
+                <td>{formatDuration(group.totalDuration)}</td>
+                <td>{group.exerciseCount}</td>
+                <td>
+                  <button
+                    className="btn-delete-history"
+                    onClick={() => {
+                      // Delete all entries for this group
+                      group.entries.forEach(entry => onDeleteHistory(entry.id))
+                    }}
+                    title="Delete all sessions from this day"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }

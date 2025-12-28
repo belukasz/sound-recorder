@@ -10,7 +10,10 @@ function ExercisePlayer({
   totalPhases,
   status,
   onStop,
-  trainingStartTime
+  trainingStartTime,
+  isPaused,
+  onPause,
+  onResume
 }) {
   const [elapsedTime, setElapsedTime] = useState(0)
 
@@ -42,9 +45,20 @@ function ExercisePlayer({
     <div className="exercise-player">
       <div className="exercise-player-header">
         <h3>Now Playing</h3>
-        <button className="btn-stop-player" onClick={onStop}>
-          {trainingStartTime ? 'Stop Training' : 'Stop Exercise'}
-        </button>
+        <div className="player-controls">
+          {isPaused ? (
+            <button className="btn-resume-player" onClick={onResume}>
+              ▶️ Resume
+            </button>
+          ) : (
+            <button className="btn-pause-player" onClick={onPause}>
+              ⏸️ Pause
+            </button>
+          )}
+          <button className="btn-stop-player" onClick={onStop}>
+            {trainingStartTime ? 'Stop Training' : 'Stop Exercise'}
+          </button>
+        </div>
       </div>
 
       <div className="exercise-player-content">
