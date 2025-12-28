@@ -22,6 +22,8 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onUp
     if (exercise.type === 'phased') {
       setSelectedPhases(exercise.phaseIds || [])
       setRepetitions(exercise.repetitions || 1)
+      setStartRecordingId(exercise.startRecordingId || null)
+      setEndRecordingId(exercise.endRecordingId || null)
     } else {
       setDuration(exercise.duration || 60)
       setStartRecordingId(exercise.startRecordingId || null)
@@ -66,7 +68,9 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onUp
         type: 'phased',
         name: newExerciseName.trim(),
         phaseIds: selectedPhases,
-        repetitions: repetitions
+        repetitions: repetitions,
+        startRecordingId: startRecordingId,
+        endRecordingId: endRecordingId
       }
     } else {
       // Timed exercise
@@ -140,10 +144,15 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onUp
   }
 
   // Get all unique labels from recordings
-  const allRecordingLabels = [...new Set(recordings.flatMap(r => r.labels || []))].sort()
+  const allLabels = [...new Set(recordings.flatMap(r => r.labels || []))].sort()
 
   // Filter recordings by selected label for timed exercise
   const filteredTimedRecordings = recordingLabelFilter
+    ? recordings.filter(r => (r.labels || []).includes(recordingLabelFilter))
+    : recordings
+
+  // Filter recordings by selected label for phased exercise
+  const filteredPhasedRecordings = recordingLabelFilter
     ? recordings.filter(r => (r.labels || []).includes(recordingLabelFilter))
     : recordings
 
@@ -166,6 +175,12 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onUp
             <>
               <span className="exercise-stat">📋 {exercise.phaseIds?.length || 0} phases</span>
               <span className="exercise-stat">🔄 {exercise.repetitions || 1}x repetitions</span>
+              {exercise.startRecordingId && (
+                <span className="exercise-stat">▶️ Start sound</span>
+              )}
+              {exercise.endRecordingId && (
+                <span className="exercise-stat">⏹️ End sound</span>
+              )}
               {exercise.phaseIds && (
                 <div className="exercise-phases-preview">
                   {exercise.phaseIds.map((phaseId, idx) => (
@@ -336,6 +351,54 @@ function ExerciseManager({ phases, exercises, recordings, onCreateExercise, onUp
                 </div>
               </div>
             )}
+
+            {allLabels.length > 0 && (
+              <div className="form-group">
+                <label>Filter recordings by label (optional)</label>
+                <select
+                  value={recordingLabelFilter}
+                  onChange={(e) => setRecordingLabelFilter(e.target.value)}
+                  className="label-filter-select"
+                >
+                  <option value="">All recordings</option>
+                  {allLabels.map(label => (
+                    <option key={label} value={label}>{label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label>Start Recording (optional - plays before exercise starts)</label>
+              <select
+                value={startRecordingId || ''}
+                onChange={(e) => setStartRecordingId(e.target.value ? parseInt(e.target.value) : null)}
+              >
+                <option value="">No start recording</option>
+                {filteredPhasedRecordings.map(recording => (
+                  <option key={recording.id} value={recording.id}>
+                    {recording.name}
+                    {recording.labels && recording.labels.length > 0 ? ` [${recording.labels.join(', ')}]` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>End Recording (optional - plays after exercise completes)</label>
+              <select
+                value={endRecordingId || ''}
+                onChange={(e) => setEndRecordingId(e.target.value ? parseInt(e.target.value) : null)}
+              >
+                <option value="">No end recording</option>
+                {filteredPhasedRecordings.map(recording => (
+                  <option key={recording.id} value={recording.id}>
+                    {recording.name}
+                    {recording.labels && recording.labels.length > 0 ? ` [${recording.labels.join(', ')}]` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
               </>
             ) : (
               <>

@@ -434,6 +434,23 @@ function App() {
       const totalRepetitions = exercise.repetitions || 1
       setTotalPhases(exercisePhases.length)
 
+      // Play start recording if configured
+      if (exercise.startRecordingId) {
+        const startRecording = recordings.find(r => r.id === exercise.startRecordingId)
+        if (startRecording) {
+          setPlayerStatus('Playing start sound...')
+          await new Promise((resolve) => {
+            const audio = new Audio(startRecording.url)
+            currentAudioRef.current = audio
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+            audio.play()
+          })
+        }
+      }
+
+      if (exerciseStoppedRef.current) return
+
       // Repeat the entire exercise
       for (let rep = 0; rep < totalRepetitions; rep++) {
         if (exerciseStoppedRef.current) break
@@ -541,6 +558,23 @@ function App() {
               audio.play()
             })
           }
+        }
+      }
+
+      if (exerciseStoppedRef.current) return
+
+      // Play end recording if configured
+      if (exercise.endRecordingId) {
+        const endRecording = recordings.find(r => r.id === exercise.endRecordingId)
+        if (endRecording) {
+          setPlayerStatus('Playing end sound...')
+          await new Promise((resolve) => {
+            const audio = new Audio(endRecording.url)
+            currentAudioRef.current = audio
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+            audio.play()
+          })
         }
       }
     }
